@@ -60,7 +60,7 @@ alembic init alembic
 <если нужно — 2-3 строки почему именно так>
 ```
 
-Области: `backend`, `frontend`, `db`, `llm`, `browser`, `filters`, `docker`, `docs`, `test`, `chore`.
+Области: `backend`, `frontend`, `db`, `llm`, `browser`, `filters`, `pipeline`, `docs`, `test`, `chore`.
 
 Примеры:
 
@@ -129,6 +129,8 @@ make test          # всё
 make test-backend  # pytest
 make test-front    # vitest, когда появится
 ```
+
+Проект запускается без докера, локально. Первый раз — `make setup`, дальше `make dev` поднимает бэкенд, фронт и Ollama одной командой. `make check` показывает, чего не хватает.
 
 ---
 
