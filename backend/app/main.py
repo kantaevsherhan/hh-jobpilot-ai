@@ -11,6 +11,8 @@ from app.api.router import api_router
 from app.core.config import settings
 from app.core.errors import register_error_handlers
 from app.core.logging import get_logger, setup_logging
+from app.llm.prompts import seed_defaults
+from app.storage.session import SessionMaker
 
 log = get_logger(__name__)
 
@@ -25,6 +27,17 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         settings.exports_dir,
     ):
         directory.mkdir(parents=True, exist_ok=True)
+    # Дефолтные промпты кладутся в базу при первом старте (§33 п.18).
+    # Ошибка тут не должна мешать приложению подняться: база может быть
+    # ещё не мигрирована, и это чинится командой make migrate
+    try:
+        async with SessionMaker() as session:
+            added = await seed_defaults(session)
+        if added:
+            log.info("Загружено промптов по умолчанию: %d", added)
+    except Exception as exc:
+        log.warning("Промпты не загружены: %s. Выполните make migrate", exc)
+
     log.info("Бэкенд запущен, окружение %s", settings.app_env)
     yield
     log.info("Бэкенд остановлен")

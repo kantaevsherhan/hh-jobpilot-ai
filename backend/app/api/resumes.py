@@ -8,7 +8,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.deps import Session
 from app.core.errors import ConflictError
+from app.llm.steps.resume_digest import build_digest, digest_to_skills
 from app.storage.models import Application, Resume, ResumeSkill
+from app.storage.models.base import utcnow
 from app.storage.repositories import crud
 
 router = APIRouter(prefix="/resumes", tags=["Резюме"])
@@ -162,3 +164,30 @@ async def replace_skills(resume_id: int, payload: SkillsIn, session: Session) ->
         )
     await session.commit()
     return await crud.list_all(session, ResumeSkill, order_by=ResumeSkill.id, resume_id=resume.id)
+
+
+@router.post("/{resume_id}/digest", response_model=ResumeOut, summary="Пересобрать выжимку")
+async def rebuild_digest(resume_id: int, session: Session) -> Resume:
+    resume = await crud.get_or_404(session, Resume, resume_id, "Резюме")
+    if not resume.raw_text.strip():
+        raise ConflictError(
+            "RESUME_TEXT_EMPTY",
+            "Сначала вставьте текст резюме — выжимку не из чего собирать.",
+            recoverable=False,
+        )
+
+    digest, _ = await build_digest(session, resume.raw_text)
+    await crud.update(
+        session,
+        resume,
+        {"digest_json": digest.model_dump(), "digest_updated_at": utcnow()},
+    )
+
+    # Навыки пересобираются из выжимки: правки руками при пересборке теряются,
+    # это ожидаемо — выжимка объявлена источником списка навыков (§7)
+    await crud.remove_where(session, ResumeSkill, resume_id=resume.id)
+    for name, is_core in digest_to_skills(digest):
+        session.add(ResumeSkill(resume_id=resume.id, name=name, is_core=is_core))
+    await session.commit()
+    await session.refresh(resume)
+    return resume
