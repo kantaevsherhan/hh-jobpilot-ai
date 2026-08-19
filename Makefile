@@ -82,7 +82,11 @@ setup:         ## Первичная установка: окружение, з�
 	@echo "→ Миграции"
 	@test -f $(BACKEND)/alembic.ini && (cd $(BACKEND) && .venv/bin/alembic upgrade head) || echo "  alembic пока не настроен"
 	@echo "→ Модель Ollama"
-	@ollama list 2>/dev/null | grep -q qwen3 || echo "  выполни: ollama pull qwen3:4b-instruct"
+	@if ls $$HOME/.ollama/models/manifests/*/*/qwen3/* >/dev/null 2>&1; then \
+		echo "  qwen3 уже скачана"; \
+	else \
+		echo "  выполни: ollama pull qwen3:4b-instruct"; \
+	fi
 	@echo ""
 	@echo "Готово. Запуск: make dev"
 
@@ -97,7 +101,8 @@ check:         ## Проверить, что всё нужное установ�
 	@printf "  venv              "; test -d $(VENV) && echo "есть" || echo "НЕТ (make setup)"
 	@printf "  node_modules      "; test -d $(FRONTEND)/node_modules && echo "есть" || echo "НЕТ (make setup)"
 	@printf "  база данных       "; test -f data/jobpilot.db && echo "есть" || echo "нет (создастся миграцией)"
-	@printf "  Ollama отвечает   "; curl -sf http://localhost:11434/api/tags >/dev/null 2>&1 && echo "да" || echo "нет (make ollama)"
+	@printf "  модель qwen3      "; ls $$HOME/.ollama/models/manifests/*/*/qwen3/* >/dev/null 2>&1 && echo "есть" || echo "НЕТ (ollama pull qwen3:4b-instruct)"
+	@printf "  Ollama отвечает   "; curl -sf http://localhost:11434/api/tags >/dev/null 2>&1 && echo "да" || echo "нет (поднимется в make dev)"
 
 # ─────────────────────────────────────────────────────────────
 # Качество кода
