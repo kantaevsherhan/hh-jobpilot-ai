@@ -10,9 +10,12 @@ from fastapi.responses import ORJSONResponse
 from app.api.router import api_router
 from app.browser.manager import browser
 from app.core.config import settings
+from app.core.enums import StopReason
 from app.core.errors import register_error_handlers
 from app.core.logging import get_logger, setup_logging
 from app.llm.prompts import seed_default_provider, seed_defaults
+from app.pipeline.queue import recover_after_crash
+from app.pipeline.runner import bot
 from app.storage.session import SessionMaker
 
 log = get_logger(__name__)
@@ -35,6 +38,15 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         async with SessionMaker() as session:
             added = await seed_defaults(session)
             provider_added = await seed_default_provider(session)
+            # Прогоны, прерванные падением приложения, надо привести в порядок (§22)
+            recovered = await recover_after_crash(session)
+        if recovered["runs_interrupted"]:
+            log.warning(
+                "Прерванных прогонов: %d, задач возвращено в очередь: %d, откликов с неизвестным состоянием: %d",
+                recovered["runs_interrupted"],
+                recovered["jobs_requeued"],
+                recovered["applies_unknown"],
+            )
         if added:
             log.info("Загружено промптов по умолчанию: %d", added)
         if provider_added:
@@ -45,6 +57,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     log.info("Бэкенд запущен, окружение %s", settings.app_env)
     yield
 
+    await bot.stop(StopReason.USER)
     await browser.stop()
     log.info("Бэкенд остановлен")
 

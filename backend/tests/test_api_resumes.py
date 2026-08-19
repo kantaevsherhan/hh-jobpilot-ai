@@ -80,3 +80,51 @@ async def test_резюме_без_откликов_удаляется(client: A
 
     assert (await client.delete(f"/api/v1/resumes/{resume_id}")).status_code == 204
     assert (await client.get(f"/api/v1/resumes/{resume_id}")).status_code == 404
+
+
+async def test_правило_компании_проверяется_из_ui(client: AsyncClient) -> None:
+    await client.post(
+        "/api/v1/company-rules",
+        json={"match_type": "CONTAINS", "value": "vash", "action": "SKIP"},
+    )
+
+    response = await client.post("/api/v1/company-rules/test", json={"company_name": "ТОО Vash"})
+
+    assert response.status_code == 200
+    assert len(response.json()["matched"]) == 1
+
+
+async def test_вакансии_фильтруются_по_резюме(client: AsyncClient) -> None:
+    resume_id = (await client.post("/api/v1/resumes", json={"name": "Backend"})).json()["id"]
+
+    response = await client.get("/api/v1/vacancies", params={"resume_id": resume_id})
+
+    assert response.status_code == 200
+    assert response.json() == {"items": [], "total": 0}
+
+
+async def test_бот_без_прогона_отдаёт_состояние_покоя(client: AsyncClient) -> None:
+    response = await client.get("/api/v1/bot/status")
+
+    assert response.status_code == 200
+    assert response.json()["is_busy"] is False
+
+
+async def test_запуск_без_поисковых_профилей_отклоняется(client: AsyncClient) -> None:
+    resume_id = (await client.post("/api/v1/resumes", json={"name": "Backend"})).json()["id"]
+
+    response = await client.post(
+        "/api/v1/bot/start", json={"resume_id": resume_id, "mode": "MANUAL"}
+    )
+
+    assert response.status_code == 409
+    assert "поисковых профилей" in response.json()["detail"]["human_message"]
+
+
+async def test_настройки_отдаются_с_дефолтами(client: AsyncClient) -> None:
+    response = await client.get("/api/v1/settings")
+
+    data = response.json()
+    assert data["limits"]["max_applications_per_day"] == 30
+    assert data["delays"]["ranges"]["between_vacancies"] == [3, 8]
+    assert data["currency_rates"]["USD"] == 500.0
