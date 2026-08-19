@@ -1,0 +1,19 @@
+@import 'tailwindcss';
+@import 'tailwindcss-primeui';
+
+/* PrimeVue сам красит свои компоненты, здесь только базовый фон страницы */
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+}
