@@ -48,3 +48,11 @@ export async function saveSkills(id: number, skills: Skill[]): Promise<Skill[]> 
   const { data } = await api.put<unknown>(`/resumes/${String(id)}/skills`, { skills })
   return z.array(skillSchema).parse(data)
 }
+
+export async function rebuildDigest(id: number): Promise<Resume> {
+  // Локальная модель читает резюме целиком — это заметно дольше обычного запроса
+  const { data } = await api.post<unknown>(`/resumes/${String(id)}/digest`, undefined, {
+    timeout: 300_000
+  })
+  return resumeSchema.parse(data)
+}

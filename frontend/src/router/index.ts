@@ -35,8 +35,18 @@ const routes: RouteRecordRaw[] = [
   stub('/search-profiles', 'search-profiles', 'Поисковые профили', '4'),
   stub('/companies', 'companies', 'Правила по компаниям', '5'),
   stub('/letter-examples', 'letter-examples', 'Примеры писем', '7'),
-  stub('/settings/providers', 'providers', 'Модели и провайдеры', '2'),
-  stub('/settings/prompts', 'prompts', 'Промпты', '2'),
+  {
+    path: '/settings/providers',
+    name: 'providers',
+    meta: { title: 'Модели и провайдеры' },
+    component: () => import('@/pages/ProvidersPage.vue')
+  },
+  {
+    path: '/settings/prompts',
+    name: 'prompts',
+    meta: { title: 'Промпты' },
+    component: () => import('@/pages/PromptsPage.vue')
+  },
   stub('/settings/delays', 'delays', 'Задержки и лимиты', '9'),
   stub('/settings/browser', 'browser', 'Браузер', '3'),
   stub('/settings/general', 'general', 'Общие настройки', '11'),

@@ -9,6 +9,7 @@ import {
   fetchResume,
   fetchResumes,
   patchResume,
+  rebuildDigest,
   saveSkills
 } from '@/api/resumes'
 import type { ResumeInput, Skill } from '@/schemas/resume'
@@ -51,3 +52,5 @@ export const usePatchResume = () =>
 
 export const useSaveSkills = () =>
   useResumeMutation(({ id, skills }: { id: number; skills: Skill[] }) => saveSkills(id, skills))
+
+export const useRebuildDigest = () => useResumeMutation(rebuildDigest)

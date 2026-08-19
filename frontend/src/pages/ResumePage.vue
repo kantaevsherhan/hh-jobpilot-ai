@@ -9,8 +9,9 @@ import Message from 'primevue/message'
 import Textarea from 'primevue/textarea'
 import { useToast } from 'primevue/usetoast'
 import { ArrowLeft, ExternalLink, Plus, Save, Sparkles, X } from 'lucide-vue-next'
+import dayjs from 'dayjs'
 import { toMessage } from '@/api/client'
-import { usePatchResume, useResume, useSaveSkills } from '@/queries/resumes'
+import { usePatchResume, useRebuildDigest, useResume, useSaveSkills } from '@/queries/resumes'
 import type { Skill } from '@/schemas/resume'
 
 const LANGUAGES = [
@@ -27,6 +28,7 @@ const resumeId = computed(() => Number(route.params.id))
 const { data: resume, isPending } = useResume(resumeId)
 const patch = usePatchResume()
 const saveSkills = useSaveSkills()
+const rebuildDigest = useRebuildDigest()
 
 const form = ref({
   name: '',
@@ -110,6 +112,15 @@ function save() {
       onError: onFail
     }
   )
+}
+
+function rebuild() {
+  rebuildDigest.mutate(resumeId.value, {
+    onSuccess: () => {
+      toast.add({ severity: 'success', summary: 'Выжимка собрана', life: 3000 })
+    },
+    onError: onFail
+  })
 }
 
 function onFail(error: unknown) {
@@ -289,11 +300,29 @@ function onFail(error: unknown) {
       <div class="rounded-[14px] border border-slate-200 bg-white p-5">
         <div class="flex items-start gap-3">
           <Sparkles class="mt-0.5 size-5 shrink-0 text-slate-400" />
-          <div class="min-w-0">
-            <h3 class="text-[13.5px] font-semibold text-slate-800">Выжимка</h3>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-baseline gap-3">
+              <h3 class="text-[13.5px] font-semibold text-slate-800">Выжимка</h3>
+              <span v-if="resume.digest_updated_at" class="text-[12px] text-slate-400">
+                собрана {{ dayjs(resume.digest_updated_at).format('DD.MM.YYYY HH:mm') }}
+              </span>
+              <Button
+                class="ml-auto"
+                size="small"
+                severity="secondary"
+                outlined
+                :label="resume.digest_json ? 'Пересобрать' : 'Собрать'"
+                :disabled="form.raw_text.trim().length === 0"
+                :loading="rebuildDigest.isPending.value"
+                @click="rebuild"
+              />
+            </div>
             <p class="mt-1 text-[13px] leading-relaxed text-slate-500">
-              Сжимает текст резюме до ~600 токенов, чтобы он помещался в контекст модели вместе с
-              вакансией. Сборка и редактирование JSON появятся в фазе 2, вместе с провайдерами.
+              Сжимает текст резюме до ~600 токенов: в контекст модели он должен помещаться вместе с
+              вакансией. Из выжимки же собирается список навыков.
+            </p>
+            <p v-if="rebuildDigest.isPending.value" class="mt-2 text-[12.5px] text-slate-500">
+              Локальная модель читает резюме целиком — это занимает около минуты.
             </p>
             <pre
               v-if="resume.digest_json"
