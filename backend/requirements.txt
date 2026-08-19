@@ -1,0 +1,29 @@
+# веб
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+
+# база
+sqlalchemy==2.0.36
+alembic==1.14.0
+aiosqlite==0.20.0
+greenlet==3.1.1
+
+# конфиг и данные
+pydantic==2.10.4
+pydantic-settings==2.7.0
+orjson==3.10.13
+httpx==0.28.1
+
+# браузер
+playwright==1.49.1
+
+# внешние провайдеры LLM (опциональны в работе, ставятся всегда)
+anthropic==0.42.0
+openai==1.59.3
+
+# тесты и качество
+pytest==8.3.4
+pytest-asyncio==0.25.0
+ruff==0.8.4
+mypy==1.14.1
