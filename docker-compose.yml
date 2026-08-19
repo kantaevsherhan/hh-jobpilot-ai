@@ -1,0 +1,83 @@
+# hh-jobpilot-ai — локальный запуск
+#
+# Перед первым стартом один раз разреши контейнеру доступ к X-серверу,
+# иначе видимый Chromium не откроется:
+#
+#     xhost +local:docker
+#
+# Обычный запуск:      make up
+# С Ollama в докере:   docker compose --profile gpu up
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend.Dockerfile
+    container_name: jobpilot-backend
+    env_file: .env
+    environment:
+      # Ollama по умолчанию живёт на хосте (там GPU), а не в контейнере
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      DISPLAY: ${DISPLAY:-:0}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./backend:/app
+      - ./data:/data
+      # проброс X-сервера — без этого Playwright не покажет окно браузера
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${XAUTHORITY:-/dev/null}:/root/.Xauthority:ro
+    ports:
+      - "127.0.0.1:8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # Chromium падает при маленьком /dev/shm
+    shm_size: "1gb"
+    ipc: host
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend.Dockerfile
+    container_name: jobpilot-frontend
+    environment:
+      VITE_API_URL: http://localhost:8000/api/v1
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "127.0.0.1:5173:5173"
+    command: npm run dev -- --host 0.0.0.0
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # Опционально. По умолчанию не поднимается: на GTX 1650 быстрее и проще
+  # держать Ollama прямо на хосте. Нужен nvidia-container-toolkit.
+  ollama:
+    image: ollama/ollama:latest
+    container_name: jobpilot-ollama
+    profiles: ["gpu"]
+    environment:
+      OLLAMA_KEEP_ALIVE: 30m
+      OLLAMA_NUM_PARALLEL: "1"          # 4 ГБ VRAM, параллелить нечем
+      OLLAMA_MAX_LOADED_MODELS: "1"
+    volumes:
+      - ollama_models:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  frontend_node_modules:
+  ollama_models:

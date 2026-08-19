@@ -1,0 +1,24 @@
+# данные приложения — сессия HH, база, скриншоты
+data/
+
+# python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# node
+node_modules/
+dist/
+.vite/
+
+# окружение
+.env
+.env.local
+
+# редакторы и ОС
+.idea/
+.vscode/
+.DS_Store
