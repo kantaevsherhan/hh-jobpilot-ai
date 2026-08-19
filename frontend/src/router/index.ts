@@ -48,7 +48,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/PromptsPage.vue')
   },
   stub('/settings/delays', 'delays', 'Задержки и лимиты', '9'),
-  stub('/settings/browser', 'browser', 'Браузер', '3'),
+  {
+    path: '/settings/browser',
+    name: 'browser',
+    meta: { title: 'Браузер' },
+    component: () => import('@/pages/BrowserPage.vue')
+  },
   stub('/settings/general', 'general', 'Общие настройки', '11'),
   stub('/settings/backups', 'backups', 'Резервные копии', '11'),
   { path: '/:pathMatch(.*)*', redirect: '/dashboard' }

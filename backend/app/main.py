@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 
 from app.api.router import api_router
+from app.browser.manager import browser
 from app.core.config import settings
 from app.core.errors import register_error_handlers
 from app.core.logging import get_logger, setup_logging
@@ -43,6 +44,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
     log.info("Бэкенд запущен, окружение %s", settings.app_env)
     yield
+
+    await browser.stop()
     log.info("Бэкенд остановлен")
 
 
