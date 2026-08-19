@@ -1,5 +1,6 @@
 """Загрузка промптов и подстановка переменных (§33 п.18)."""
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import PromptKey
@@ -51,3 +52,20 @@ def test_выжимка_раскладывается_в_навыки() -> None:
     # Go есть в обоих списках, но навык один и он ключевой
     assert [name for name, _ in skills].count("Go") == 1
     assert ("Go", True) in skills
+
+
+async def test_на_пустой_базе_заводится_локальная_ollama(session: AsyncSession) -> None:
+    from app.llm.prompts import seed_default_provider
+    from app.storage.models import LLMProvider
+
+    created = await seed_default_provider(session)
+    again = await seed_default_provider(session)
+
+    rows = list((await session.scalars(select(LLMProvider))).all())
+    assert created is True
+    assert again is False
+    assert len(rows) == 1
+    # Адрес, модель и num_ctx живут в строке провайдера, а не в .env
+    assert rows[0].base_url == "http://localhost:11434"
+    assert rows[0].model == "qwen3:4b-instruct"
+    assert rows[0].extra_json["num_ctx"] == 8192

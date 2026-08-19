@@ -19,10 +19,6 @@ class Settings(BaseSettings):
     app_env: str = "local"
     database_url: str = "sqlite+aiosqlite:///./data/jobpilot.db"
 
-    ollama_url: str = "http://localhost:11434"
-    ollama_model: str = "qwen3:4b-instruct"
-    ollama_num_ctx: int = 8192
-
     backend_host: str = "127.0.0.1"
     backend_port: int = 8000
     frontend_url: str = "http://localhost:5173"

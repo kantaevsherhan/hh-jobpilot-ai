@@ -7,8 +7,9 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.defaults import DEFAULT_PROVIDER
 from app.core.enums import PROMPT_KEY_LABELS, PromptKey
-from app.storage.models import Prompt
+from app.storage.models import LLMProvider, Prompt
 
 PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
 
@@ -39,6 +40,19 @@ async def seed_defaults(session: AsyncSession) -> int:
     if added:
         await session.commit()
     return added
+
+
+async def seed_default_provider(session: AsyncSession) -> bool:
+    """Завести локальную Ollama, если провайдеров нет вообще.
+
+    Без этого на свежей базе не работает ни один шаг, а руками заводить
+    строку с localhost:11434 пользователю незачем — это дефолт проекта.
+    """
+    if await session.scalar(select(LLMProvider).limit(1)) is not None:
+        return False
+    session.add(LLMProvider(**DEFAULT_PROVIDER))
+    await session.commit()
+    return True
 
 
 async def get_text(session: AsyncSession, key: str) -> str:

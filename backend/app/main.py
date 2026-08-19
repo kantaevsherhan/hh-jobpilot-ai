@@ -11,7 +11,7 @@ from app.api.router import api_router
 from app.core.config import settings
 from app.core.errors import register_error_handlers
 from app.core.logging import get_logger, setup_logging
-from app.llm.prompts import seed_defaults
+from app.llm.prompts import seed_default_provider, seed_defaults
 from app.storage.session import SessionMaker
 
 log = get_logger(__name__)
@@ -33,8 +33,11 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     try:
         async with SessionMaker() as session:
             added = await seed_defaults(session)
+            provider_added = await seed_default_provider(session)
         if added:
             log.info("Загружено промптов по умолчанию: %d", added)
+        if provider_added:
+            log.info("Заведён провайдер по умолчанию: локальная Ollama")
     except Exception as exc:
         log.warning("Промпты не загружены: %s. Выполните make migrate", exc)
 

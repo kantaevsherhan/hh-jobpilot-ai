@@ -43,3 +43,17 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "answer_employer_questions": False,
     },
 }
+
+
+# Провайдер, который создаётся на пустой базе. Дальше правится из UI:
+# адрес, модель и num_ctx хранятся в строке llm_providers, а не в .env
+DEFAULT_PROVIDER: dict[str, Any] = {
+    "name": "Локальная Ollama",
+    "type": "ollama",
+    "base_url": "http://localhost:11434",
+    "model": "qwen3:4b-instruct",
+    "temperature": 0.3,
+    "timeout_sec": 300,
+    "extra_json": {"num_ctx": 8192, "keep_alive": "30m"},
+    "is_enabled": True,
+}
