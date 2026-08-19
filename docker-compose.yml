@@ -19,6 +19,8 @@ services:
       # Ollama по умолчанию живёт на хосте (там GPU), а не в контейнере
       OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
       DISPLAY: ${DISPLAY:-:0}
+      # в контейнере профиль браузера лежит по абсолютному пути
+      BROWSER_USER_DATA_DIR: /data/browser/default
       PYTHONUNBUFFERED: "1"
     volumes:
       - ./backend:/app
@@ -33,6 +35,9 @@ services:
     # Chromium падает при маленьком /dev/shm
     shm_size: "1gb"
     ipc: host
+    # аппаратное ускорение отрисовки для Chromium; без этого софтварный рендер
+    devices:
+      - /dev/dri:/dev/dri
     command: >
       sh -c "alembic upgrade head &&
              uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
