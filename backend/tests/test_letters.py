@@ -117,3 +117,38 @@ class TestЛичныеДанные:
         assert is_allowed_field("Ваш телефон") is True
         assert is_allowed_field("Город проживания") is True
         assert is_allowed_field("Номер паспорта") is False
+
+
+class TestРеальныйСлучайВыдумки:
+    """Случай с живого прогона: локальная 4B не заметила выдумку.
+
+    Модель дописала в письмо Prisma ORM, OAuth и JWT, которых в резюме нет,
+    и LLM-проверка признала письмо валидным. Поймать это должна словарная
+    проверка — она детерминированная и бесплатная (§18).
+    """
+
+    LETTER = (
+        "Настроен на работу с Docker и PostgreSQL, включая использование Prisma ORM. "
+        "Имею практический опыт с аутентификацией (OAuth, JWT)."
+    )
+    RESUME = "Fullstack, 4 года. TypeScript, Vue, Node.js, NestJS, Go, PostgreSQL, Docker."
+
+    def test_orm_и_протоколы_аутентификации_находятся(self) -> None:
+        unsupported = dictionary_check(
+            self.LETTER,
+            resume_text=self.RESUME,
+            allowed_facts="",
+            resume_skills=["Node.js", "Docker", "PostgreSQL"],
+        )
+
+        assert set(unsupported) == {"Prisma", "OAuth", "JWT"}
+
+    def test_то_что_в_резюме_есть_выдумкой_не_считается(self) -> None:
+        unsupported = dictionary_check(
+            "Работал с Docker, PostgreSQL и NestJS.",
+            resume_text=self.RESUME,
+            allowed_facts="",
+            resume_skills=[],
+        )
+
+        assert unsupported == []
