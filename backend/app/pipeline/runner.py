@@ -7,6 +7,9 @@
 import asyncio
 from typing import Any
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.enums import (
     BotMode,
     EventLevel,
@@ -26,6 +29,26 @@ from app.storage.models import Resume, Run
 from app.storage.models.base import utcnow
 
 log = get_logger(__name__)
+
+
+async def find_resumable(session: AsyncSession) -> Run | None:
+    """Последний прогон, который можно продолжить.
+
+    Очередь живёт в БД, а run_id — только в памяти процесса. После
+    перезапуска приложения продолжать всё равно должно быть можно (§22).
+    """
+    resumable = (RunStatus.STOPPED.value, RunStatus.PAUSED.value, RunStatus.INTERRUPTED.value)
+    runs = list(
+        (
+            await session.scalars(
+                select(Run).where(Run.status.in_(resumable)).order_by(Run.id.desc()).limit(10)
+            )
+        ).all()
+    )
+    for run in runs:
+        if await queue.pending_count(session, run.id):
+            return run
+    return None
 
 
 class BotRunner:
@@ -143,13 +166,17 @@ class BotRunner:
             await self._set_status(RunStatus.RUNNING)
             return
 
-        if self.run_id is None:
-            raise ConflictError("NO_RUN", "Нечего продолжать: прогонов не было", recoverable=False)
-
         async with db.session_factory()() as session:
-            run = await session.get(Run, self.run_id)
+            run = (
+                await session.get(Run, self.run_id)
+                if self.run_id is not None
+                else await find_resumable(session)
+            )
             if run is None:
-                raise ConflictError("NO_RUN", "Прогон не найден", recoverable=False)
+                raise ConflictError(
+                    "NO_RUN", "Нечего продолжать: незавершённых прогонов нет", recoverable=False
+                )
+            self.run_id = run.id
             pending = await queue.pending_count(session, run.id)
             if pending == 0:
                 raise ConflictError(
@@ -161,12 +188,12 @@ class BotRunner:
             run.ended_at = None
             run.stop_reason = None
             await session.commit()
-            resume_id, profile_id = run.resume_id, run.search_profile_id
+            run_id, resume_id, profile_id = run.id, run.resume_id, run.search_profile_id
 
         self.status = RunStatus.RUNNING
         self.consecutive_errors = 0
         self._stop.clear()
-        self._task = asyncio.create_task(self._loop(self.run_id, resume_id, profile_id))
+        self._task = asyncio.create_task(self._loop(run_id, resume_id, profile_id))
 
     async def stop(self, reason: StopReason = StopReason.USER) -> None:
         self._stop.set()

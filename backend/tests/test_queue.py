@@ -153,3 +153,41 @@ async def test_продолжать_нечего_если_очередь_пус�
 
     with pytest.raises(ConflictError):
         await runner.resume()
+
+
+async def test_продолжить_находит_прогон_после_перезапуска(
+    session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """run_id живёт в памяти процесса, а очередь — в БД. После перезапуска
+    приложения продолжить всё равно должно быть можно (§22)."""
+    from app.pipeline.runner import BotRunner
+
+    run = await make_run(session, RunStatus.INTERRUPTED)
+    await queue.add(session, run.id, JobType.ANALYZE, {"vacancy_id": 1})
+
+    runner = BotRunner()
+    assert runner.run_id is None  # как после перезапуска бэкенда
+
+    started: list[int] = []
+
+    async def fake_loop(run_id: int, *_: object) -> None:
+        started.append(run_id)
+
+    monkeypatch.setattr(runner, "_loop", fake_loop)
+    await runner.resume()
+    if runner._task is not None:
+        await runner._task
+
+    assert started == [run.id]
+    assert runner.run_id == run.id
+
+
+async def test_завершённый_прогон_не_считается_продолжаемым(session: AsyncSession) -> None:
+    from app.core.errors import ConflictError
+    from app.pipeline.runner import BotRunner
+
+    run = await make_run(session, RunStatus.FINISHED)
+    await queue.add(session, run.id, JobType.ANALYZE, {"vacancy_id": 1})
+
+    with pytest.raises(ConflictError):
+        await BotRunner().resume()
