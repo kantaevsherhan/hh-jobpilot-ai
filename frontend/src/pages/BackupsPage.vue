@@ -45,7 +45,8 @@ function makeBackup() {
           <h3 class="text-[13.5px] font-semibold text-slate-800">Резервная копия базы</h3>
           <p class="mt-1 max-w-prose text-[12.5px] leading-relaxed text-slate-500">
             Копия файла базы кладётся в data/backups с датой в имени. Там вся история: вакансии,
-            решения, письма и отклики.
+            решения, письма и отклики. Ключи внешних провайдеров в копии зашифрованы — ключ
+            шифрования хранится отдельно и в копию не попадает.
           </p>
           <p v-if="lastPath" class="mt-2 font-mono text-[12px] break-all text-slate-600">
             {{ lastPath }}

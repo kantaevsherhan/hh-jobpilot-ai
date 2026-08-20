@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.enums import CompanyRuleAction, MatchType, ProviderType
 from app.storage.models.base import Base, TimestampMixin
+from app.storage.models.types import EncryptedString
 
 
 class CompanyRule(Base, TimestampMixin):
@@ -34,7 +35,8 @@ class LLMProvider(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(100))
     type: Mapped[str] = mapped_column(String(20), default=ProviderType.OLLAMA.value)
     base_url: Mapped[str | None] = mapped_column(String(300))
-    api_key: Mapped[str | None] = mapped_column(String(300))
+    # В базе лежит зашифрованным: копия базы не должна раскрывать ключи (§29)
+    api_key: Mapped[str | None] = mapped_column(EncryptedString(500))
     model: Mapped[str | None] = mapped_column(String(150))
     temperature: Mapped[float] = mapped_column(default=0.3)
     timeout_sec: Mapped[int] = mapped_column(Integer, default=300)

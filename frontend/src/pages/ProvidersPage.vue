@@ -156,7 +156,10 @@ const providerOptions = computed(() =>
         <div>
           <h2 class="text-[15px] font-semibold tracking-tight text-slate-900">Провайдеры</h2>
           <p class="mt-1 max-w-prose text-[13px] leading-relaxed text-slate-600">
-            Ключи хранятся в базе и наружу отдаются маской. Локальная модель ключа не требует.
+            Ключи хранятся в базе зашифрованными и наружу отдаются маской. Ключ шифрования лежит в
+            настройках пользователя, а не в
+            <span class="font-mono">data/</span>, поэтому резервная копия базы его не уносит.
+            Локальная модель ключа не требует.
           </p>
         </div>
         <Button class="ml-auto shrink-0" size="small" label="Добавить" @click="openDialog">

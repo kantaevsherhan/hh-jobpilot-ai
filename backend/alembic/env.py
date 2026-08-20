@@ -28,6 +28,22 @@ config.set_main_option("sqlalchemy.url", settings.sqlalchemy_url)
 
 target_metadata = Base.metadata
 
+
+def render_item(type_: str, obj: object, autogen_context: object) -> str | bool:
+    """Собственные типы колонок рендерим их базовым типом.
+
+    EncryptedString — это про приложение, в схеме он остаётся VARCHAR,
+    и миграции не должны тянуть импорт из app.
+    """
+    from sqlalchemy import String
+
+    from app.storage.models.types import EncryptedString
+
+    if type_ == "type" and isinstance(obj, EncryptedString):
+        return f"sa.String(length={String(obj.length).length})"
+    return False
+
+
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
@@ -52,6 +68,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         render_as_batch=True,
+        render_item=render_item,
         dialect_opts={"paramstyle": "named"},
     )
 
@@ -64,6 +81,7 @@ def do_run_migrations(connection: Connection) -> None:
         connection=connection,
         target_metadata=target_metadata,
         render_as_batch=True,
+        render_item=render_item,
     )
 
     with context.begin_transaction():

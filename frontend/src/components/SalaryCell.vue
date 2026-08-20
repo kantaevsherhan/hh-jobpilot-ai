@@ -10,7 +10,9 @@ const props = defineProps<{
 
 const SIGNS: Record<string, string> = { KZT: '₸', RUR: '₽', RUB: '₽', USD: '$', EUR: '€' }
 
-const format = (value: number) => value.toLocaleString('ru-RU').replace(/,/g, ' ')
+// ru-RU разделяет разряды неразрывным пробелом — так «900 000» не переносится
+// по строкам. Замена запятых осталась от прежней локали и ничего не делала
+const format = (value: number) => value.toLocaleString('ru-RU')
 
 const text = computed(() => {
   const sign = SIGNS[props.currency ?? ''] ?? props.currency ?? ''
