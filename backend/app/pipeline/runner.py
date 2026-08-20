@@ -51,6 +51,34 @@ async def find_resumable(session: AsyncSession) -> Run | None:
     return None
 
 
+async def ensure_hh_session() -> None:
+    """Убедиться, что браузер запущен и пользователь вошёл в HH.
+
+    Бот не регистрируется, не подбирает пароли и не проходит капчу: он
+    только открывает окно и сообщает, что нужно войти (§9).
+    """
+    from app.browser.manager import BrowserState, browser
+
+    state = await browser.start() if not browser.is_running else await browser.check_auth()
+
+    if state == BrowserState.READY:
+        return
+
+    if state == BrowserState.NEEDS_LOGIN:
+        raise ConflictError(
+            "HH_LOGIN_REQUIRED",
+            "Войдите в hh.kz в открытом окне браузера, затем запустите прогон снова. "
+            "Бот работает от вашего аккаунта и входит за вас только вручную.",
+            recoverable=True,
+        )
+
+    raise ConflictError(
+        "BROWSER_NOT_READY",
+        browser.last_error or "Браузер не готов. Откройте «Настройки → Браузер».",
+        recoverable=True,
+    )
+
+
 class BotRunner:
     """Состояние бота на процесс. Прогон один: параллельные прогоны разных
     резюме в v1 не поддерживаются (§7)."""
@@ -98,6 +126,10 @@ class BotRunner:
     ) -> int:
         if self.is_busy:
             raise ConflictError("BOT_ALREADY_RUNNING", "Прогон уже идёт")
+
+        # Без активной сессии HH прогон бессмыслен: выдача поиска и карточки
+        # открываются от имени пользователя. Логинится он сам, руками (§9)
+        await ensure_hh_session()
 
         async with db.session_factory()() as session:
             ctx = await load_context(session, resume_id, search_profile_id)

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
@@ -24,6 +24,7 @@ const BOT_MODES = [
 const toast = useToast()
 const confirm = useConfirm()
 const route = useRoute()
+const router = useRouter()
 const ui = useUiStore()
 
 const { data: resumes, isPending: resumesPending } = useResumes()
@@ -63,6 +64,17 @@ function fail(error: unknown) {
 function launch() {
   if (ui.resumeId === null) {
     toast.add({ severity: 'warn', summary: 'Сначала выберите резюме', life: 4000 })
+    return
+  }
+  // Прогон идёт от аккаунта пользователя: без входа в HH запускать нечего
+  if (browserStatus.value?.state !== 'READY') {
+    toast.add({
+      severity: 'warn',
+      summary: 'Нужен вход в hh.kz',
+      detail: 'Откройте «Настройки → Браузер», войдите в свой аккаунт и нажмите «Проверить вход».',
+      life: 9000
+    })
+    void router.push('/settings/browser')
     return
   }
   start.mutate(

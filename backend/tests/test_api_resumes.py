@@ -1,3 +1,4 @@
+import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -110,8 +111,32 @@ async def test_бот_без_прогона_отдаёт_состояние_по
     assert response.json()["is_busy"] is False
 
 
-async def test_запуск_без_поисковых_профилей_отклоняется(client: AsyncClient) -> None:
+async def test_запуск_без_входа_в_hh_отклоняется(client: AsyncClient) -> None:
+    """Прогон идёт от аккаунта пользователя, поэтому вход проверяется первым.
+
+    Браузер тут не поднимается: тесты не требуют браузера (§30) — проверка
+    падает раньше, на неготовой сессии.
+    """
     resume_id = (await client.post("/api/v1/resumes", json={"name": "Backend"})).json()["id"]
+
+    response = await client.post(
+        "/api/v1/bot/start", json={"resume_id": resume_id, "mode": "MANUAL"}
+    )
+
+    assert response.status_code in (400, 409)
+    detail = response.json()["detail"]
+    assert detail["error_code"] in ("HH_LOGIN_REQUIRED", "BROWSER_NOT_READY", "BROWSER_NOT_STARTED")
+
+
+async def test_запуск_без_поисковых_профилей_отклоняется(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    resume_id = (await client.post("/api/v1/resumes", json={"name": "Backend"})).json()["id"]
+
+    async def session_ok() -> None:
+        return None
+
+    monkeypatch.setattr("app.pipeline.runner.ensure_hh_session", session_ok)
 
     response = await client.post(
         "/api/v1/bot/start", json={"resume_id": resume_id, "mode": "MANUAL"}

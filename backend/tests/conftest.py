@@ -71,3 +71,18 @@ async def client(session: AsyncSession) -> AsyncIterator[AsyncClient]:
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def _clean_browser_state() -> Any:
+    """Менеджер браузера — синглтон на процесс.
+
+    Без сброса состояние, выставленное одним тестом, протекает в следующий.
+    """
+    from app.browser.manager import BrowserState, browser
+
+    browser.state = BrowserState.STOPPED
+    browser.last_error = None
+    yield
+    browser.state = BrowserState.STOPPED
+    browser.last_error = None

@@ -68,3 +68,44 @@ async def test_обращение_к_странице_закрытого_бра�
 
     assert exc.value.error_code == "BROWSER_NOT_STARTED"
     assert "Настройки" in exc.value.human_message
+
+
+async def test_прогон_не_стартует_без_входа_в_hh(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Бот работает от аккаунта пользователя и входит только вручную (§9).
+
+    Без активной сессии запускать прогон бессмысленно: выдача и карточки
+    открываются от его имени.
+    """
+    from app.core.errors import ConflictError
+    from app.pipeline import runner
+
+    manager = BrowserManager()
+    manager.state = BrowserState.NEEDS_LOGIN
+
+    async def fake_check() -> BrowserState:
+        return BrowserState.NEEDS_LOGIN
+
+    monkeypatch.setattr(manager, "check_auth", fake_check)
+    monkeypatch.setattr(manager, "_context", object())
+    monkeypatch.setattr("app.browser.manager.browser", manager)
+
+    with pytest.raises(ConflictError) as exc:
+        await runner.ensure_hh_session()
+
+    assert exc.value.error_code == "HH_LOGIN_REQUIRED"
+    assert "hh.kz" in exc.value.human_message
+
+
+async def test_при_активной_сессии_прогон_не_блокируется(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.pipeline import runner
+
+    manager = BrowserManager()
+
+    async def fake_check() -> BrowserState:
+        return BrowserState.READY
+
+    monkeypatch.setattr(manager, "check_auth", fake_check)
+    monkeypatch.setattr(manager, "_context", object())
+    monkeypatch.setattr("app.browser.manager.browser", manager)
+
+    await runner.ensure_hh_session()

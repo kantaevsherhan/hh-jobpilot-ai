@@ -5,6 +5,7 @@ import Button from 'primevue/button'
 import ProgressBar from 'primevue/progressbar'
 import { FileText, Plus } from 'lucide-vue-next'
 import EmptyState from '@/components/EmptyState.vue'
+import SetupChecklist from '@/components/SetupChecklist.vue'
 import { useBotStatus, useRuns, useStats } from '@/queries'
 import { useResumes } from '@/queries/resumes'
 import { useUiStore } from '@/stores/ui'
@@ -47,7 +48,8 @@ const money = (value: number | null) =>
 </script>
 
 <template>
-  <div v-if="(resumes?.length ?? 0) === 0" class="pt-14">
+  <div v-if="(resumes?.length ?? 0) === 0" class="max-w-3xl">
+    <SetupChecklist class="mb-4" />
     <EmptyState
       :icon="FileText"
       title="Начните с резюме"
@@ -66,6 +68,8 @@ const money = (value: number | null) =>
   </div>
 
   <div v-else class="max-w-5xl">
+    <SetupChecklist class="mb-4" />
+
     <section class="grid grid-cols-4 gap-2.5">
       <RouterLink
         v-for="card in cards"
