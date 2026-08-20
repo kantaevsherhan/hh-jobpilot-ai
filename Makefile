@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help setup dev check backend frontend ollama test test-backend test-front lint fmt migrate revision seed backup clean
+.PHONY: help setup dev check backend frontend ollama test test-backend test-front lint fmt build ci migrate revision seed backup clean
 
 BACKEND  := backend
 FRONTEND := frontend
@@ -123,6 +123,18 @@ lint:          ## ruff + mypy + eslint + vue-tsc
 fmt:           ## ruff format + prettier, с автоисправлениями
 	cd $(BACKEND) && .venv/bin/ruff format . && .venv/bin/ruff check --fix .
 	cd $(FRONTEND) && npx prettier --write . && npx eslint . --fix
+
+build:         ## Production-сборка фронтенда
+	cd $(FRONTEND) && npm run build
+
+ci:            ## Полная проверка: линтеры, тесты, миграции, сборка
+	@$(MAKE) lint
+	@$(MAKE) test
+	@echo "→ Миграции применяются с нуля"
+	@cd $(BACKEND) && .venv/bin/alembic check
+	@$(MAKE) build
+	@echo ""
+	@echo "Всё зелёное."
 
 # ─────────────────────────────────────────────────────────────
 # База

@@ -149,6 +149,7 @@ function ruleLine(rule: CompanyRule): string {
           <InputText
             v-model="form.value"
             size="small"
+            fluid
             class="w-full"
             placeholder="Название или часть"
             @keyup.enter="submit"
@@ -158,6 +159,7 @@ function ruleLine(rule: CompanyRule): string {
             :options="MATCH_TYPES"
             option-label="label"
             option-value="value"
+            fluid
             class="w-full"
             size="small"
           />
@@ -177,6 +179,7 @@ function ruleLine(rule: CompanyRule): string {
           <InputNumber
             v-if="needsDelta(form.action)"
             v-model="form.score_delta"
+            fluid
             class="w-full"
             size="small"
             :min="-50"
@@ -184,7 +187,7 @@ function ruleLine(rule: CompanyRule): string {
             show-buttons
             placeholder="Дельта скора"
           />
-          <InputText v-model="form.note" size="small" class="w-full" placeholder="Заметка" />
+          <InputText v-model="form.note" size="small" fluid class="w-full" placeholder="Заметка" />
           <label class="flex items-center gap-2 text-[12.5px] text-slate-700">
             <ToggleSwitch v-model="form.case_sensitive" />
             Учитывать регистр

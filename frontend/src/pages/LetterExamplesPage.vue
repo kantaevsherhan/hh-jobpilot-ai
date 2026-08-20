@@ -152,15 +152,21 @@ function submit() {
         <div class="grid grid-cols-3 gap-3">
           <div class="col-span-1">
             <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Название</label>
-            <InputText v-model="form.name" class="w-full" size="small" />
+            <InputText v-model="form.name" fluid class="w-full" size="small" />
           </div>
           <div>
             <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Категория</label>
-            <Select v-model="form.category" :options="CATEGORIES" class="w-full" size="small" />
+            <Select
+              v-model="form.category"
+              :options="CATEGORIES"
+              fluid
+              class="w-full"
+              size="small"
+            />
           </div>
           <div>
             <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Тон</label>
-            <Select v-model="form.tone" :options="TONES" class="w-full" size="small" />
+            <Select v-model="form.tone" :options="TONES" fluid class="w-full" size="small" />
           </div>
         </div>
         <div>

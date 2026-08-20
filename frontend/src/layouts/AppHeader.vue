@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
@@ -37,6 +37,18 @@ const pageTitle = computed(() => (typeof route.meta.title === 'string' ? route.m
 
 const resumeOptions = computed(() =>
   (resumes.value ?? []).map((item) => ({ label: item.name, value: item.id }))
+)
+
+// Резюме одно — выбирать его руками бессмысленно. И если выбранное удалили,
+// селектор не должен остаться указывающим в пустоту
+watch(
+  resumes,
+  (list) => {
+    if (!list?.length) return
+    const exists = list.some((item) => item.id === ui.resumeId)
+    if (!exists) ui.resumeId = list.length === 1 ? list[0].id : null
+  },
+  { immediate: true }
 )
 
 const indicators = computed(() => {
@@ -109,8 +121,10 @@ function switchRuntime(value: RuntimeMode) {
 </script>
 
 <template>
-  <header class="flex h-14 shrink-0 items-center gap-4 border-b border-slate-200 bg-white px-5">
-    <h1 class="shrink-0 text-[15px] font-semibold tracking-tight text-slate-800">
+  <header
+    class="flex h-14 shrink-0 items-center gap-3 overflow-x-auto border-b border-slate-200 bg-white px-5"
+  >
+    <h1 class="shrink-0 text-[15px] font-semibold whitespace-nowrap text-slate-800">
       {{ pageTitle }}
     </h1>
 
@@ -122,7 +136,7 @@ function switchRuntime(value: RuntimeMode) {
       :loading="resumesPending"
       placeholder="Резюме не выбрано"
       size="small"
-      class="w-52"
+      class="w-52 shrink-0"
     />
 
     <SelectButton
@@ -132,12 +146,13 @@ function switchRuntime(value: RuntimeMode) {
       option-value="value"
       :allow-empty="false"
       size="small"
+      class="shrink-0 whitespace-nowrap"
       @update:model-value="ui.botMode = $event as BotMode"
     />
 
     <button
       type="button"
-      class="rounded-full px-3 py-1 text-[11.5px] font-semibold tracking-wide transition-colors"
+      class="shrink-0 rounded-full px-3 py-1 text-[11.5px] font-semibold tracking-wide whitespace-nowrap transition-colors"
       :class="
         ui.isLive
           ? 'bg-red-600 text-white hover:bg-red-700'
@@ -148,21 +163,21 @@ function switchRuntime(value: RuntimeMode) {
       {{ ui.runtimeMode }}
     </button>
 
-    <div class="ml-auto flex items-center gap-4">
+    <div class="ml-auto flex shrink-0 items-center gap-3">
       <div
         v-for="item in indicators"
         :key="item.label"
-        class="flex items-center gap-1.5 text-[12px]"
+        v-tooltip.bottom="`${item.label}: ${item.text}`"
+        class="flex cursor-default items-center gap-1.5 text-[12px] whitespace-nowrap"
       >
         <Circle
-          class="size-2.5"
+          class="size-2.5 shrink-0"
           :class="item.on ? 'fill-teal-600 text-teal-600' : 'fill-slate-300 text-slate-300'"
         />
-        <span class="text-slate-600">{{ item.label }}</span>
-        <span class="text-slate-400">{{ item.text }}</span>
+        <span :class="item.on ? 'text-slate-700' : 'text-slate-400'">{{ item.label }}</span>
       </div>
 
-      <div class="flex items-center gap-1.5">
+      <div class="flex shrink-0 items-center gap-1.5">
         <Button
           v-if="!isBusy"
           size="small"

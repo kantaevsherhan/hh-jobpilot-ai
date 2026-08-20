@@ -1,7 +1,6 @@
 @import 'tailwindcss';
 @import 'tailwindcss-primeui';
 
-/* PrimeVue сам красит свои компоненты, здесь только базовый фон страницы */
 html,
 body,
 #app {
@@ -16,4 +15,26 @@ body {
     -apple-system,
     'Segoe UI',
     sans-serif;
+}
+
+/*
+  PrimeVue рисует поле двумя узлами: внешней обёрткой и самим <input> внутри.
+  Ширина, заданная обёртке через класс, до внутреннего поля не доходит, и оно
+  вылезает за карточку. Плюс элементы grid по умолчанию имеют min-width:auto
+  и отказываются сжиматься.
+*/
+.p-inputnumber,
+.p-select,
+.p-multiselect,
+.p-inputtext,
+.p-textarea,
+.p-selectbutton {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.p-inputnumber > .p-inputtext,
+.p-inputnumber-input {
+  width: 100%;
+  min-width: 0;
 }

@@ -299,7 +299,7 @@ const providerOptions = computed(() =>
       <div class="space-y-3">
         <div>
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Название</label>
-          <InputText v-model="form.name" class="w-full" placeholder="Локальная qwen3" />
+          <InputText v-model="form.name" fluid class="w-full" placeholder="Локальная qwen3" />
         </div>
         <div>
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Тип</label>
@@ -308,27 +308,33 @@ const providerOptions = computed(() =>
             :options="typeOptions"
             option-label="label"
             option-value="value"
+            fluid
             class="w-full"
           />
         </div>
         <div v-if="isCli">
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Команда</label>
-          <InputText v-model="form.command" class="w-full" placeholder="claude или codex" />
+          <InputText v-model="form.command" fluid class="w-full" placeholder="claude или codex" />
           <p class="mt-1 text-[12px] text-slate-500">
             Неинтерактивный режим CLI: claude -p и codex exec. Биллится по подписке.
           </p>
         </div>
         <div v-else>
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Модель</label>
-          <InputText v-model="form.model" class="w-full" placeholder="qwen3:4b-instruct" />
+          <InputText v-model="form.model" fluid class="w-full" placeholder="qwen3:4b-instruct" />
         </div>
         <div v-if="needsKey">
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">API-ключ</label>
-          <InputText v-model="form.api_key" type="password" class="w-full" />
+          <InputText v-model="form.api_key" type="password" fluid class="w-full" />
         </div>
         <div v-if="form.type === 'ollama' || form.type === 'openrouter'">
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Адрес</label>
-          <InputText v-model="form.base_url" class="w-full" placeholder="http://localhost:11434" />
+          <InputText
+            v-model="form.base_url"
+            fluid
+            class="w-full"
+            placeholder="http://localhost:11434"
+          />
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
@@ -339,6 +345,7 @@ const providerOptions = computed(() =>
               :max="2"
               :step="0.1"
               :min-fraction-digits="1"
+              fluid
               class="w-full"
               size="small"
             />
@@ -351,6 +358,7 @@ const providerOptions = computed(() =>
               v-model="form.timeout_sec"
               :min="5"
               :max="3600"
+              fluid
               class="w-full"
               size="small"
             />

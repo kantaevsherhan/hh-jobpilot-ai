@@ -232,6 +232,7 @@ const dateFormat = (value: string) => dayjs(value).format('DD.MM.YYYY')
       <InputText
         v-model="newName"
         autofocus
+        fluid
         class="w-full"
         placeholder="Backend Node.js"
         @keyup.enter="submitCreate"

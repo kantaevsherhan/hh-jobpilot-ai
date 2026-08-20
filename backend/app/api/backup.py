@@ -2,8 +2,6 @@
 
 import csv
 import io
-import shutil
-from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter
@@ -11,9 +9,8 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 
 from app.api.deps import Session
-from app.core.config import ROOT_DIR, settings
 from app.core.enums import VACANCY_STATUS_LABELS
-from app.core.errors import AppError
+from app.storage.backup import create_backup
 from app.storage.models import Application, ResumeVacancy, Vacancy
 
 router = APIRouter(tags=["Резервные копии"])
@@ -21,20 +18,7 @@ router = APIRouter(tags=["Резервные копии"])
 
 @router.post("/backup", summary="Резервная копия базы")
 async def backup() -> dict[str, Any]:
-    prefix = "sqlite+aiosqlite:///"
-    if not settings.sqlalchemy_url.startswith(prefix):
-        raise AppError("BACKUP_UNSUPPORTED", "Копия делается только для SQLite")
-
-    source = ROOT_DIR / settings.sqlalchemy_url[len(prefix) :].lstrip("/")
-    source = source if source.exists() else ROOT_DIR / "data" / "jobpilot.db"
-    if not source.exists():
-        raise AppError("BACKUP_UNSUPPORTED", "Файл базы не найден")
-
-    settings.backups_dir.mkdir(parents=True, exist_ok=True)
-    target = settings.backups_dir / f"jobpilot-{datetime.now().strftime('%Y%m%d-%H%M%S')}.db"
-    shutil.copy2(source, target)
-
-    return {"path": str(target), "size_bytes": target.stat().st_size}
+    return create_backup()
 
 
 def _csv_response(rows: list[list[Any]], header: list[str], filename: str) -> StreamingResponse:

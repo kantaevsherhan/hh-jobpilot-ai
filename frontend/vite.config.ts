@@ -1,5 +1,7 @@
 import { fileURLToPath, URL } from 'node:url'
-import { defineConfig } from 'vite'
+// defineConfig берётся у Vitest: конфиг содержит секцию test, которой нет
+// в типе Vite. С импортом из 'vite' production-сборка не проходила
+import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 

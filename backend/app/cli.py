@@ -4,14 +4,12 @@
 """
 
 import asyncio
-import shutil
 import sys
-from datetime import datetime
 
-from app.core.config import ROOT_DIR, settings
 from app.core.logging import setup_logging
 from app.llm.prompts import seed_default_provider, seed_defaults
 from app.storage import session as db
+from app.storage.backup import create_backup
 
 
 async def seed() -> None:
@@ -23,16 +21,8 @@ async def seed() -> None:
 
 
 def backup() -> None:
-    prefix = "sqlite+aiosqlite:///"
-    source = ROOT_DIR / settings.sqlalchemy_url[len(prefix) :].lstrip("/")
-    if not source.exists():
-        print(f"Файл базы не найден: {source}")
-        raise SystemExit(1)
-
-    settings.backups_dir.mkdir(parents=True, exist_ok=True)
-    target = settings.backups_dir / f"jobpilot-{datetime.now().strftime('%Y%m%d-%H%M%S')}.db"
-    shutil.copy2(source, target)
-    print(f"Копия: {target} ({target.stat().st_size // 1024} КБ)")
+    result = create_backup()
+    print(f"Копия: {result['path']} ({int(result['size_bytes']) // 1024} КБ)")
 
 
 def main() -> None:

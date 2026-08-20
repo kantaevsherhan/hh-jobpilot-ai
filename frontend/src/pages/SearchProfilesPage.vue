@@ -326,7 +326,7 @@ const areaLabel = (codes: unknown[]) =>
       <div class="space-y-3">
         <div>
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Название</label>
-          <InputText v-model="form.name" class="w-full" placeholder="Backend Remote" />
+          <InputText v-model="form.name" fluid class="w-full" placeholder="Backend Remote" />
         </div>
 
         <div>
@@ -352,6 +352,7 @@ const areaLabel = (codes: unknown[]) =>
           <InputText
             v-model="form.queryDraft"
             size="small"
+            fluid
             class="w-full"
             placeholder="Node.js Developer, затем Enter"
             @keyup.enter="addTo('queries', 'queryDraft')"
@@ -368,6 +369,7 @@ const areaLabel = (codes: unknown[]) =>
               :options="REMOTE_MODES"
               option-label="label"
               option-value="value"
+              fluid
               class="w-full"
               size="small"
             />
@@ -379,6 +381,7 @@ const areaLabel = (codes: unknown[]) =>
               :options="AREAS"
               option-label="label"
               option-value="value"
+              fluid
               class="w-full"
               size="small"
               :max-selected-labels="2"
@@ -388,7 +391,7 @@ const areaLabel = (codes: unknown[]) =>
             <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">
               Минимальная зарплата
             </label>
-            <InputNumber v-model="form.min_salary" class="w-full" size="small" :min="0" />
+            <InputNumber v-model="form.min_salary" fluid class="w-full" size="small" :min="0" />
           </div>
           <div>
             <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Опыт</label>
@@ -397,6 +400,7 @@ const areaLabel = (codes: unknown[]) =>
               :options="EXPERIENCE"
               option-label="label"
               option-value="value"
+              fluid
               class="w-full"
               size="small"
               :max-selected-labels="1"
@@ -408,6 +412,7 @@ const areaLabel = (codes: unknown[]) =>
             </label>
             <InputNumber
               v-model="form.max_age_days"
+              fluid
               class="w-full"
               size="small"
               :min="1"
@@ -420,6 +425,7 @@ const areaLabel = (codes: unknown[]) =>
             </label>
             <InputNumber
               v-model="form.max_vacancies_per_run"
+              fluid
               class="w-full"
               size="small"
               :min="1"
@@ -454,6 +460,7 @@ const areaLabel = (codes: unknown[]) =>
           <InputText
             v-model="form.excludeDraft"
             size="small"
+            fluid
             class="w-full"
             placeholder="1С, Bitrix, WordPress — по одному, Enter"
             @keyup.enter="addTo('exclude_keywords', 'excludeDraft')"
@@ -483,6 +490,7 @@ const areaLabel = (codes: unknown[]) =>
           <InputText
             v-model="form.includeDraft"
             size="small"
+            fluid
             class="w-full"
             placeholder="достаточно одного совпадения"
             @keyup.enter="addTo('include_keywords', 'includeDraft')"

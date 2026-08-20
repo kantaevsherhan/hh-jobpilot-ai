@@ -167,7 +167,7 @@ function onFail(error: unknown) {
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Название</label>
-          <InputText v-model="form.name" class="w-full" />
+          <InputText v-model="form.name" fluid class="w-full" />
         </div>
         <div>
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600"
@@ -175,6 +175,7 @@ function onFail(error: unknown) {
           >
           <InputText
             v-model="form.hh_resume_url"
+            fluid
             class="w-full"
             placeholder="https://hh.kz/resume/…"
           />
@@ -262,6 +263,7 @@ function onFail(error: unknown) {
           :max="100"
           show-buttons
           size="small"
+          fluid
           class="w-full"
         />
         <label class="mt-3 mb-1 block text-[12.5px] text-slate-600">Выше — можно откликаться</label>
@@ -271,6 +273,7 @@ function onFail(error: unknown) {
           :max="100"
           show-buttons
           size="small"
+          fluid
           class="w-full"
         />
         <Message v-if="!thresholdsValid" severity="error" size="small" class="mt-3 text-[12px]">

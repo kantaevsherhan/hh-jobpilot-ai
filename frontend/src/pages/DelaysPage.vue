@@ -153,6 +153,7 @@ function reset() {
             :min-fraction-digits="key === 'typing_per_char' ? 2 : 0"
             :max-fraction-digits="2"
             :step="key === 'typing_per_char' ? 0.01 : 1"
+            fluid
             class="w-full"
           />
           <InputNumber
@@ -161,6 +162,7 @@ function reset() {
             :min-fraction-digits="key === 'typing_per_char' ? 2 : 0"
             :max-fraction-digits="2"
             :step="key === 'typing_per_char' ? 0.01 : 1"
+            fluid
             class="w-full"
           />
         </div>
@@ -180,8 +182,8 @@ function reset() {
           />
           вакансий
         </span>
-        <InputNumber v-model="delays.long_pause_range[0]" size="small" class="w-full" />
-        <InputNumber v-model="delays.long_pause_range[1]" size="small" class="w-full" />
+        <InputNumber v-model="delays.long_pause_range[0]" size="small" fluid class="w-full" />
+        <InputNumber v-model="delays.long_pause_range[1]" size="small" fluid class="w-full" />
       </div>
 
       <Message v-if="invalidRanges.length" severity="error" size="small" class="mt-3">
@@ -204,6 +206,7 @@ function reset() {
             size="small"
             :min="1"
             :max="200"
+            fluid
             class="w-full"
           />
         </div>
@@ -214,6 +217,7 @@ function reset() {
             size="small"
             :min="1"
             :max="500"
+            fluid
             class="w-full"
           />
         </div>
@@ -224,6 +228,7 @@ function reset() {
             size="small"
             :min="1"
             :max="50"
+            fluid
             class="w-full"
           />
         </div>

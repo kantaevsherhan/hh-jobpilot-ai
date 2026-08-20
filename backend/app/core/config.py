@@ -42,14 +42,30 @@ class Settings(BaseSettings):
         return self.data_dir / "exports"
 
     @property
+    def database_path(self) -> Path | None:
+        """Путь к файлу базы. None, если СУБД не файловая.
+
+        Одно место разбора URL на всё приложение: раньше путь собирали
+        трижды и по-разному, из-за чего корень репозитория попадал в него
+        дважды и резервное копирование падало.
+        """
+        for prefix in ("sqlite+aiosqlite:///", "sqlite:///"):
+            if self.database_url.startswith(prefix):
+                raw = self.database_url[len(prefix) :]
+                if not raw or raw == ":memory:":
+                    return None
+                path = Path(raw)
+                # Относительный путь считаем от корня репозитория, иначе база
+                # создаётся там, откуда запустили uvicorn
+                return path if path.is_absolute() else (ROOT_DIR / path).resolve()
+        return None
+
+    @property
     def sqlalchemy_url(self) -> str:
-        """Относительный путь к базе разворачивается от корня репозитория,
-        иначе база создаётся там, откуда запустили uvicorn."""
-        prefix = "sqlite+aiosqlite:///"
-        if self.database_url.startswith(prefix + "./"):
-            relative = self.database_url[len(prefix) + 2 :]
-            return f"{prefix}{ROOT_DIR / relative}"
-        return self.database_url
+        path = self.database_path
+        if path is None:
+            return self.database_url
+        return f"sqlite+aiosqlite:///{path}"
 
 
 @lru_cache
