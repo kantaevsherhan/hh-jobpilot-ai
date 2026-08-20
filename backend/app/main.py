@@ -16,7 +16,7 @@ from app.core.logging import get_logger, setup_logging
 from app.llm.prompts import seed_default_provider, seed_defaults
 from app.pipeline.queue import recover_after_crash
 from app.pipeline.runner import bot
-from app.storage.session import SessionMaker
+from app.storage import session as db
 
 log = get_logger(__name__)
 
@@ -35,7 +35,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     # Ошибка тут не должна мешать приложению подняться: база может быть
     # ещё не мигрирована, и это чинится командой make migrate
     try:
-        async with SessionMaker() as session:
+        async with db.session_factory()() as session:
             added = await seed_defaults(session)
             provider_added = await seed_default_provider(session)
             # Прогоны, прерванные падением приложения, надо привести в порядок (§22)

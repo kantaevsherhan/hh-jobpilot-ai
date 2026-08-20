@@ -76,6 +76,9 @@ class BrowserManager:
                     viewport={"width": 1440, "height": 900},
                     args=["--disable-blink-features=AutomationControlled"],
                 )
+                # Пользователь может закрыть окно руками в любой момент — тогда
+                # состояние должно стать «не запущен», а не «ошибка сети»
+                self._context.on("close", self._on_context_closed)
             except Exception as exc:
                 self.state = BrowserState.ERROR
                 self.last_error = str(exc)
@@ -88,11 +91,31 @@ class BrowserManager:
 
         return await self.check_auth()
 
+    def _on_context_closed(self, _: object = None) -> None:
+        self._context = None
+        if self.state != BrowserState.STOPPED:
+            self.state = BrowserState.STOPPED
+            log.info("Окно браузера закрыто")
+
     async def page(self) -> "Page":
         if self._context is None:
-            raise AppError("BROWSER_NOT_STARTED", "Браузер не запущен")
-        pages = self._context.pages
-        return pages[0] if pages else await self._context.new_page()
+            raise AppError(
+                "BROWSER_NOT_STARTED",
+                "Браузер не запущен. Откройте «Настройки → Браузер» и нажмите «Запустить».",
+            )
+        pages = [page for page in self._context.pages if not page.is_closed()]
+        if pages:
+            return pages[0]
+        try:
+            return await self._context.new_page()
+        except Exception as exc:
+            # Окно закрыли, пока шёл прогон
+            self._on_context_closed()
+            raise AppError(
+                "BROWSER_NOT_STARTED",
+                "Окно браузера закрыто. Запустите его заново.",
+                technical_details=str(exc),
+            ) from exc
 
     async def check_auth(self) -> BrowserState:
         """Определить, вошёл ли пользователь. Ничего не кликаем и не обходим."""
@@ -105,8 +128,11 @@ class BrowserManager:
         try:
             self.state = await detect_session(await self.page())
         except AppError as exc:
-            self.state = BrowserState.ERROR
-            self.last_error = exc.human_message
+            if exc.error_code == "BROWSER_NOT_STARTED":
+                self.state = BrowserState.STOPPED
+            else:
+                self.state = BrowserState.ERROR
+                self.last_error = exc.human_message
         return self.state
 
     async def stop(self) -> None:

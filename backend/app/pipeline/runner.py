@@ -21,9 +21,9 @@ from app.core.logging import get_logger
 from app.pipeline import events, queue
 from app.pipeline.context import load_context
 from app.pipeline.steps import HANDLERS
+from app.storage import session as db
 from app.storage.models import Resume, Run
 from app.storage.models.base import utcnow
-from app.storage.session import SessionMaker
 
 log = get_logger(__name__)
 
@@ -49,7 +49,7 @@ class BotRunner:
         counters: dict[str, Any] = {}
         pending = 0
         if self.run_id is not None:
-            async with SessionMaker() as session:
+            async with db.session_factory()() as session:
                 run = await session.get(Run, self.run_id)
                 if run is not None:
                     counters = dict(run.counters_json or {})
@@ -76,7 +76,7 @@ class BotRunner:
         if self.is_busy:
             raise ConflictError("BOT_ALREADY_RUNNING", "Прогон уже идёт")
 
-        async with SessionMaker() as session:
+        async with db.session_factory()() as session:
             ctx = await load_context(session, resume_id, search_profile_id)
             if not ctx.profiles:
                 raise ConflictError(
@@ -145,7 +145,7 @@ class BotRunner:
         from app.browser.manager import browser
 
         try:
-            async with SessionMaker() as session:
+            async with db.session_factory()() as session:
                 ctx = await load_context(session, resume_id, search_profile_id)
                 max_errors = int(ctx.limits.get("max_consecutive_errors", 5))
 
@@ -155,7 +155,7 @@ class BotRunner:
                     await asyncio.sleep(1)
                     continue
 
-                async with SessionMaker() as session:
+                async with db.session_factory()() as session:
                     job = await queue.take_next(session, run_id)
                     if job is None:
                         await self._finish(StopReason.FINISHED)
@@ -194,7 +194,7 @@ class BotRunner:
                 processed += 1
                 if ctx.delays.needs_long_break(processed):
                     seconds = await ctx.delays.long_break()
-                    async with SessionMaker() as session:
+                    async with db.session_factory()() as session:
                         await events.log_event(
                             session,
                             run_id,
@@ -262,7 +262,7 @@ class BotRunner:
         self.status = status
         if self.run_id is None:
             return
-        async with SessionMaker() as session:
+        async with db.session_factory()() as session:
             run = await session.get(Run, self.run_id)
             if run is not None:
                 run.status = status.value
@@ -271,7 +271,7 @@ class BotRunner:
     async def _finish(self, reason: StopReason) -> None:
         if self.run_id is None:
             return
-        async with SessionMaker() as session:
+        async with db.session_factory()() as session:
             run = await session.get(Run, self.run_id)
             if run is None or run.status in {RunStatus.FINISHED.value, RunStatus.STOPPED.value}:
                 return

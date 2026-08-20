@@ -3,6 +3,7 @@
 Playwright тут не поднимается: тесты не требуют браузера (§30).
 """
 
+import pytest
 from httpx import AsyncClient
 
 from app.browser.manager import BrowserManager, BrowserState
@@ -39,3 +40,31 @@ def test_селекторы_собраны_в_одном_месте() -> None:
     assert HH.BASE_URL == "https://hh.kz"
     assert "data-qa" in HH.LOGGED_IN
     assert "data-qa" in HH.APPLY_BUTTON
+
+
+async def test_закрытое_окно_переводит_состояние_в_не_запущен() -> None:
+    """Пользователь вправе закрыть окно руками в любой момент.
+
+    До этого менеджер продолжал считать браузер живым и выдавал
+    «проверьте интернет» вместо «браузер не запущен».
+    """
+    manager = BrowserManager()
+    manager.state = BrowserState.READY
+
+    manager._on_context_closed()
+
+    assert manager.state == BrowserState.STOPPED
+    assert manager.is_running is False
+    assert (await manager.status())["label"] == "Не запущен"
+
+
+async def test_обращение_к_странице_закрытого_браузера_даёт_понятную_ошибку() -> None:
+    from app.core.errors import AppError
+
+    manager = BrowserManager()
+
+    with pytest.raises(AppError) as exc:
+        await manager.page()
+
+    assert exc.value.error_code == "BROWSER_NOT_STARTED"
+    assert "Настройки" in exc.value.human_message
