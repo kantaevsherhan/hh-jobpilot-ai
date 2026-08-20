@@ -18,8 +18,29 @@ from app.storage.models import Base
 from app.storage.session import get_session
 
 
+def _always(session: AsyncSession) -> Any:
+    """Фабрика, всегда отдающая одну и ту же тестовую сессию.
+
+    Закрывать её на выходе из `async with` нельзя — она нужна остальным
+    проверкам того же теста.
+    """
+
+    class _Ctx:
+        async def __aenter__(self) -> AsyncSession:
+            return session
+
+        async def __aexit__(self, *_: object) -> None:
+            return None
+
+    class _Maker:
+        def __call__(self) -> Any:
+            return _Ctx()
+
+    return _Maker()
+
+
 @pytest.fixture
-async def session() -> AsyncIterator[AsyncSession]:
+async def session(monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[AsyncSession]:
     # StaticPool держит одно соединение: у sqlite в памяти база живёт
     # ровно столько, сколько живёт соединение
     engine = create_async_engine(
@@ -31,45 +52,22 @@ async def session() -> AsyncIterator[AsyncSession]:
         await conn.run_sync(Base.metadata.create_all)
 
     maker = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-    async with maker() as s:
-        yield s
+    async with maker() as db_session:
+        # Воркер прогона открывает сессии сам, вне HTTP-запроса. Без подмены
+        # фабрики тесты бота писали бы в рабочую базу разработчика
+        monkeypatch.setattr(session_module, "session_factory", lambda: _always(db_session))
+        yield db_session
+
     await engine.dispose()
 
 
 @pytest.fixture
-async def client(
-    session: AsyncSession, monkeypatch: pytest.MonkeyPatch
-) -> AsyncIterator[AsyncClient]:
+async def client(session: AsyncSession) -> AsyncIterator[AsyncClient]:
     async def _session_override() -> AsyncIterator[AsyncSession]:
         yield session
-
-    # Воркер прогона открывает сессии сам, вне запроса. Без подмены фабрики
-    # тесты бота писали бы в рабочую базу разработчика
-    monkeypatch.setattr(session_module, "session_factory", lambda: _test_maker(session))
 
     app.dependency_overrides[get_session] = _session_override
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
-
-
-def _test_maker(session: AsyncSession) -> Any:
-    """Фабрика, всегда отдающая одну и ту же тестовую сессию.
-
-    Закрывать её на выходе из `async with` нельзя — она нужна остальным
-    проверкам теста.
-    """
-
-    class _Maker:
-        def __call__(self) -> Any:
-            return _Ctx()
-
-    class _Ctx:
-        async def __aenter__(self) -> AsyncSession:
-            return session
-
-        async def __aexit__(self, *_: object) -> None:
-            return None
-
-    return _Maker()

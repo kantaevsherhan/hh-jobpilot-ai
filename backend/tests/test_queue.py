@@ -1,5 +1,6 @@
 """Очередь: остановка и возобновление не теряют и не дублируют задачи (§22, §30)."""
 
+import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -107,3 +108,48 @@ async def test_счётчики_по_состояниям(session: AsyncSession)
     assert total == 2
     assert counts[JobState.DONE] == 1
     assert counts[JobState.PENDING] == 1
+
+
+async def test_продолжение_после_остановки_поднимает_воркер(
+    session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """После остановки по недоступному провайдеру «Продолжить» обязано
+    возобновить прогон с той же вакансии, а не просто сменить статус (§14)."""
+    from app.pipeline.runner import BotRunner
+
+    run = await make_run(session, RunStatus.STOPPED)
+    run.stop_reason = "PROVIDER_UNAVAILABLE"
+    await session.commit()
+    await queue.add(session, run.id, JobType.ANALYZE, {"vacancy_id": 1})
+
+    runner = BotRunner()
+    runner.run_id = run.id
+    started: list[int] = []
+
+    async def fake_loop(run_id: int, *_: object) -> None:
+        started.append(run_id)
+
+    monkeypatch.setattr(runner, "_loop", fake_loop)
+
+    await runner.resume()
+    if runner._task is not None:
+        await runner._task
+
+    await session.refresh(run)
+    assert started == [run.id]
+    assert run.status == RunStatus.RUNNING
+    assert run.stop_reason is None
+
+
+async def test_продолжать_нечего_если_очередь_пуста(
+    session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.core.errors import ConflictError
+    from app.pipeline.runner import BotRunner
+
+    run = await make_run(session, RunStatus.FINISHED)
+    runner = BotRunner()
+    runner.run_id = run.id
+
+    with pytest.raises(ConflictError):
+        await runner.resume()

@@ -131,8 +131,42 @@ class BotRunner:
         await self._set_status(RunStatus.PAUSED)
 
     async def resume(self) -> None:
+        """Продолжить прогон.
+
+        Пауза — просто снять флаг. Но прогон мог быть и остановлен: например,
+        отвалился провайдер (§14). Тогда воркера уже нет, и «Продолжить»
+        обязано поднять его заново — задачи ждут в очереди с той же вакансии.
+        """
         self._pause.clear()
-        await self._set_status(RunStatus.RUNNING)
+
+        if self.is_busy:
+            await self._set_status(RunStatus.RUNNING)
+            return
+
+        if self.run_id is None:
+            raise ConflictError("NO_RUN", "Нечего продолжать: прогонов не было", recoverable=False)
+
+        async with db.session_factory()() as session:
+            run = await session.get(Run, self.run_id)
+            if run is None:
+                raise ConflictError("NO_RUN", "Прогон не найден", recoverable=False)
+            pending = await queue.pending_count(session, run.id)
+            if pending == 0:
+                raise ConflictError(
+                    "NOTHING_TO_RESUME",
+                    "В прогоне не осталось задач. Запустите новый.",
+                    recoverable=False,
+                )
+            run.status = RunStatus.RUNNING.value
+            run.ended_at = None
+            run.stop_reason = None
+            await session.commit()
+            resume_id, profile_id = run.resume_id, run.search_profile_id
+
+        self.status = RunStatus.RUNNING
+        self.consecutive_errors = 0
+        self._stop.clear()
+        self._task = asyncio.create_task(self._loop(self.run_id, resume_id, profile_id))
 
     async def stop(self, reason: StopReason = StopReason.USER) -> None:
         self._stop.set()
