@@ -109,3 +109,36 @@ async def test_при_активной_сессии_прогон_не_блоки
     monkeypatch.setattr("app.browser.manager.browser", manager)
 
     await runner.ensure_hh_session()
+
+
+class TestСверенныеСелекторы:
+    """Имена data-qa сверены с живой страницей hh.kz.
+
+    Угадывать их нельзя: HH называет узлы не так, как кажется логичным.
+    Признак входа искали по «mainmenu_myResumes» — такого узла нет вовсе,
+    и вход не определялся, хотя пользователь был авторизован.
+    """
+
+    def test_признак_входа_ищет_реальные_узлы(self) -> None:
+        assert "mainmenu_profileAndResumes" in HH.LOGGED_IN
+        assert "mainmenu_applicantProfilePage" in HH.LOGGED_IN
+        # Запасной вариант по ссылкам переживает переименование data-qa
+        assert 'a[href^="/applicant/resumes"]' in HH.LOGGED_IN
+
+    def test_занятость_график_и_формат_разные_узлы(self) -> None:
+        assert HH.VACANCY_EMPLOYMENT == '[data-qa="common-employment-text"]'
+        assert HH.VACANCY_SCHEDULE == '[data-qa="work-schedule-by-days-text"]'
+        assert HH.VACANCY_WORK_FORMAT == '[data-qa="work-formats-text"]'
+
+    def test_вопросы_работодателя_ищутся_по_началу_атрибута(self) -> None:
+        # Значение атрибута — два токена через пробел, точное совпадение не сработает
+        assert '[data-qa^="vacancy-response-question"]' in HH.QUESTION_ITEM
+
+
+def test_формат_работы_читается_из_своего_узла() -> None:
+    from app.browser.extract import detect_work_format
+
+    assert detect_work_format("Формат работы: удалённо", "График: 5/2") == "REMOTE"
+    assert detect_work_format("Формат работы: гибрид", None) == "HYBRID"
+    assert detect_work_format("Формат работы: на месте работодателя", None) == "OFFICE"
+    assert detect_work_format(None, None) == "UNKNOWN"

@@ -15,14 +15,20 @@ class HH:
     RESUME_URL: Final = "https://hh.kz/applicant/resumes"
     APPLICATIONS_URL: Final = "https://hh.kz/applicant/negotiations"
 
-    # Признак того, что пользователь вошёл: блок личного кабинета в шапке
+    # Признак входа: пункты личного кабинета в шапке. Имена сверены с живой
+    # страницей hh.kz — угадывать их нельзя, у HH они называются не так,
+    # как кажется логичным. Ссылки на /applicant/* оставлены запасным
+    # вариантом: они переживают переименование data-qa
     LOGGED_IN: Final = (
-        '[data-qa="mainmenu_applicantProfile"], '
-        '[data-qa="mainmenu_myResumes"], '
-        '[data-qa="mainmenu_negotiations"]'
+        '[data-qa="mainmenu_profileAndResumes"], '
+        '[data-qa="mainmenu_applicantProfilePage"], '
+        '[data-qa="mainmenu_vacancyResponses"], '
+        '[data-qa="mainmenu_applicantProfileDesktopDrop"], '
+        'a[href^="/applicant/resumes"], '
+        'a[href^="/applicant/negotiations"]'
     )
     # Признак обратного: кнопка входа
-    LOGIN_BUTTON: Final = '[data-qa="login"], [data-qa="mainmenu_login"]'
+    LOGIN_BUTTON: Final = '[data-qa="login"], [data-qa="mainmenu_login"], a[href*="/account/login"]'
 
     CAPTCHA: Final = (
         '[data-qa="account-captcha"], iframe[src*="captcha"], '
@@ -51,7 +57,11 @@ class HH:
         '[data-qa="vacancy-salary"], [data-qa="vacancy-salary-compensation-type-net"]'
     )
     VACANCY_EXPERIENCE: Final = '[data-qa="vacancy-experience"]'
-    VACANCY_EMPLOYMENT: Final = '[data-qa="vacancy-view-employment-mode"]'
+    # Занятость, график и формат работы лежат в трёх разных узлах и названы
+    # не «vacancy-*», а по-своему — сверено с живой страницей hh.kz
+    VACANCY_EMPLOYMENT: Final = '[data-qa="common-employment-text"]'
+    VACANCY_SCHEDULE: Final = '[data-qa="work-schedule-by-days-text"]'
+    VACANCY_WORK_FORMAT: Final = '[data-qa="work-formats-text"]'
     VACANCY_ADDRESS: Final = (
         '[data-qa="vacancy-view-location"], [data-qa="vacancy-view-raw-address"]'
     )
@@ -74,7 +84,9 @@ class HH:
     APPLY_SUCCESS: Final = '[data-qa="vacancy-response-success"], [data-qa="chat-title"]'
 
     RESUME_SELECT: Final = '[data-qa="resume-select"]'
-    QUESTION_ITEM: Final = '[data-qa="task-body"], [data-qa="vacancy-response-question"]'
+    # Атрибут содержит два токена через пробел («vacancy-response-question
+    # vacancy-response-question_salary_options»), точное совпадение не сработает
+    QUESTION_ITEM: Final = '[data-qa^="vacancy-response-question"], [data-qa="task-body"]'
 
     # Отклики в личном кабинете
     NEGOTIATION_ITEM: Final = '[data-qa="negotiations-item"]'

@@ -180,6 +180,8 @@ async def _from_dom(page: "Page", url: str) -> VacancyData:
     salary_from, salary_to, currency, gross = _parse_salary_text(salary_text)
     experience = await _text(page, HH.VACANCY_EXPERIENCE)
     employment = await _text(page, HH.VACANCY_EMPLOYMENT)
+    schedule = await _text(page, HH.VACANCY_SCHEDULE)
+    work_format_text = await _text(page, HH.VACANCY_WORK_FORMAT)
 
     return VacancyData(
         hh_id=hh_id,
@@ -192,9 +194,10 @@ async def _from_dom(page: "Page", url: str) -> VacancyData:
         salary_to=salary_to,
         currency=currency,
         salary_gross=gross,
-        work_format=detect_work_format(employment, description[:1500]),
+        work_format=detect_work_format(work_format_text, schedule, employment, description[:1500]),
         experience=experience or None,
         employment=employment or None,
+        schedule=schedule or None,
         area=await _text(page, HH.VACANCY_ADDRESS) or None,
         is_closed=bool(await page.locator(HH.VACANCY_ARCHIVED).count()),
     )
