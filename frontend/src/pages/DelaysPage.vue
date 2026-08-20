@@ -8,6 +8,7 @@ import { useToast } from 'primevue/usetoast'
 import { RotateCcw, Save } from 'lucide-vue-next'
 import { toMessage } from '@/api/client'
 import { usePatchSettings, useSettings } from '@/queries'
+import { deepCopy } from '@/utils/clone'
 import type { AppSettings } from '@/api/settings'
 
 const RANGE_LABELS: Record<string, string> = {
@@ -41,7 +42,7 @@ const toast = useToast()
 const { data: settings, isPending } = useSettings()
 const patch = usePatchSettings()
 
-const delays = ref<AppSettings['delays']>(structuredClone(DEFAULTS))
+const delays = ref<AppSettings['delays']>(deepCopy(DEFAULTS))
 const limits = ref({
   max_applications_per_run: 20,
   max_applications_per_day: 30,
@@ -52,7 +53,7 @@ watch(
   settings,
   (value) => {
     if (!value) return
-    delays.value = structuredClone(value.delays)
+    delays.value = deepCopy(value.delays)
     limits.value = { ...value.limits }
   },
   { immediate: true }
@@ -104,7 +105,7 @@ function save() {
 }
 
 function reset() {
-  delays.value = structuredClone(DEFAULTS)
+  delays.value = deepCopy(DEFAULTS)
 }
 </script>
 

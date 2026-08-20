@@ -24,8 +24,7 @@ export default [
       globals: {
         window: 'readonly',
         document: 'readonly',
-        localStorage: 'readonly',
-        structuredClone: 'readonly'
+        localStorage: 'readonly'
       },
       parserOptions: {
         parser: tseslint.parser,
