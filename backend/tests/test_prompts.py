@@ -69,3 +69,16 @@ async def test_на_пустой_базе_заводится_локальная_
     assert rows[0].base_url == "http://localhost:11434"
     assert rows[0].model == "qwen3:4b-instruct"
     assert rows[0].extra_json["num_ctx"] == 8192
+
+
+def test_дефолтные_промпты_требуют_русский_ответ() -> None:
+    """Причины и флаги читает человек в интерфейсе, а он на русском (§8).
+
+    Локальная модель охотно отвечает по-английски, если её не попросить.
+    """
+    analyze = prompts.default_text(PromptKey.ANALYZE)
+    fact_check = prompts.default_text(PromptKey.FACT_CHECK)
+
+    assert "по-русски" in analyze
+    assert "reason" in analyze
+    assert "по-русски" in fact_check

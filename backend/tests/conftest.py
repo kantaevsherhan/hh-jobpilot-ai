@@ -74,15 +74,25 @@ async def client(session: AsyncSession) -> AsyncIterator[AsyncClient]:
 
 
 @pytest.fixture(autouse=True)
-def _clean_browser_state() -> Any:
-    """Менеджер браузера — синглтон на процесс.
+def _no_real_browser(monkeypatch: pytest.MonkeyPatch) -> Any:
+    """Тесты не поднимают браузер (§30).
 
-    Без сброса состояние, выставленное одним тестом, протекает в следующий.
+    Менеджер — синглтон на процесс, поэтому и состояние, и запуск
+    подменяются: иначе один тест открывает настоящий Chromium, а следующий
+    видит его в чужом состоянии.
     """
     from app.browser.manager import BrowserState, browser
 
-    browser.state = BrowserState.STOPPED
-    browser.last_error = None
+    async def refuse_start() -> BrowserState:
+        browser.state = BrowserState.NEEDS_LOGIN
+        return BrowserState.NEEDS_LOGIN
+
+    def reset() -> None:
+        browser.state = BrowserState.STOPPED
+        browser.last_error = None
+        browser._context = None
+
+    reset()
+    monkeypatch.setattr(browser, "start", refuse_start)
     yield
-    browser.state = BrowserState.STOPPED
-    browser.last_error = None
+    reset()
