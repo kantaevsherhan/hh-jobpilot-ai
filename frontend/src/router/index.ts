@@ -1,12 +1,5 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
-const StubPage = () => import('@/pages/StubPage.vue')
-
-/** Экран будущей фазы: показывает заглушку с её номером, а не пустую страницу. */
-function stub(path: string, name: string, title: string, phase: string): RouteRecordRaw {
-  return { path, name, meta: { title }, component: StubPage, props: { title, phase } }
-}
-
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/dashboard' },
   {
@@ -27,14 +20,60 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'Резюме' },
     component: () => import('@/pages/ResumePage.vue')
   },
-  stub('/vacancies', 'vacancies', 'Вакансии', '4'),
-  stub('/review', 'review', 'Очередь проверки', '10'),
-  stub('/suspicious', 'suspicious', 'Подозрительные', '6'),
-  stub('/applications', 'applications', 'Отклики', '8'),
-  stub('/activity', 'activity', 'Активность', '9'),
-  stub('/search-profiles', 'search-profiles', 'Поисковые профили', '4'),
-  stub('/companies', 'companies', 'Правила по компаниям', '5'),
-  stub('/letter-examples', 'letter-examples', 'Примеры писем', '7'),
+  {
+    path: '/vacancies/:id',
+    name: 'vacancy',
+    meta: { title: 'Вакансия' },
+    component: () => import('@/pages/VacancyPage.vue')
+  },
+  {
+    path: '/vacancies',
+    name: 'vacancies',
+    meta: { title: 'Вакансии' },
+    component: () => import('@/pages/VacanciesPage.vue')
+  },
+  {
+    path: '/review',
+    name: 'review',
+    meta: { title: 'Очередь проверки' },
+    component: () => import('@/pages/ReviewQueuePage.vue')
+  },
+  {
+    path: '/suspicious',
+    name: 'suspicious',
+    meta: { title: 'Подозрительные' },
+    component: () => import('@/pages/SuspiciousPage.vue')
+  },
+  {
+    path: '/applications',
+    name: 'applications',
+    meta: { title: 'Отклики' },
+    component: () => import('@/pages/ApplicationsPage.vue')
+  },
+  {
+    path: '/activity',
+    name: 'activity',
+    meta: { title: 'Активность' },
+    component: () => import('@/pages/ActivityPage.vue')
+  },
+  {
+    path: '/search-profiles',
+    name: 'search-profiles',
+    meta: { title: 'Поисковые профили' },
+    component: () => import('@/pages/SearchProfilesPage.vue')
+  },
+  {
+    path: '/companies',
+    name: 'companies',
+    meta: { title: 'Правила по компаниям' },
+    component: () => import('@/pages/CompaniesPage.vue')
+  },
+  {
+    path: '/letter-examples',
+    name: 'letter-examples',
+    meta: { title: 'Примеры писем' },
+    component: () => import('@/pages/LetterExamplesPage.vue')
+  },
   {
     path: '/settings/providers',
     name: 'providers',
@@ -47,15 +86,30 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'Промпты' },
     component: () => import('@/pages/PromptsPage.vue')
   },
-  stub('/settings/delays', 'delays', 'Задержки и лимиты', '9'),
+  {
+    path: '/settings/delays',
+    name: 'delays',
+    meta: { title: 'Задержки и лимиты' },
+    component: () => import('@/pages/DelaysPage.vue')
+  },
   {
     path: '/settings/browser',
     name: 'browser',
     meta: { title: 'Браузер' },
     component: () => import('@/pages/BrowserPage.vue')
   },
-  stub('/settings/general', 'general', 'Общие настройки', '11'),
-  stub('/settings/backups', 'backups', 'Резервные копии', '11'),
+  {
+    path: '/settings/general',
+    name: 'general',
+    meta: { title: 'Общие настройки' },
+    component: () => import('@/pages/GeneralPage.vue')
+  },
+  {
+    path: '/settings/backups',
+    name: 'backups',
+    meta: { title: 'Резервные копии' },
+    component: () => import('@/pages/BackupsPage.vue')
+  },
   { path: '/:pathMatch(.*)*', redirect: '/dashboard' }
 ]
 

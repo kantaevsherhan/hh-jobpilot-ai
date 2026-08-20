@@ -20,6 +20,13 @@ export default [
     files: ['**/*.vue'],
     languageOptions: {
       parser: vueParser,
+      // Экраны работают в браузере: localStorage, window и setInterval здесь легальны
+      globals: {
+        window: 'readonly',
+        document: 'readonly',
+        localStorage: 'readonly',
+        structuredClone: 'readonly'
+      },
       parserOptions: {
         parser: tseslint.parser,
         ecmaVersion: 'latest',
