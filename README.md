@@ -44,6 +44,36 @@ make dev      # backend :8000, frontend :5173, Ollama — одной коман�
 документация  http://localhost:8000/docs
 ```
 
+### Windows (PowerShell)
+
+`Makefile` использует Unix-команды. В Windows установите Python 3.12+, Node.js 20+
+и Ollama, затем выполните из корня проекта:
+
+```powershell
+py -3.12 -m venv backend\.venv
+backend\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
+backend\.venv\Scripts\python.exe -m playwright install chromium
+npm ci --prefix frontend
+New-Item -ItemType Directory -Force data, data\browser, data\screenshots, data\backups, data\exports | Out-Null
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+Push-Location backend
+.\.venv\Scripts\python.exe -m alembic upgrade head
+Pop-Location
+```
+
+Запустите Ollama (`ollama serve`) и модель (`ollama pull qwen3:4b-instruct`).
+В двух отдельных окнах PowerShell запустите бэкенд и фронтенд:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+```powershell
+cd frontend
+npm run dev
+```
+
 ## Разработка
 
 ```bash

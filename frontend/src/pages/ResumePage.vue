@@ -306,7 +306,7 @@ function onFail(error: unknown) {
           <div class="min-w-0 flex-1">
             <div class="flex items-baseline gap-3">
               <h3 class="text-[13.5px] font-semibold text-slate-800">Выжимка</h3>
-              <span v-if="resume.digest_updated_at" class="text-[12px] text-slate-400">
+              <span v-if="resume?.digest_updated_at" class="text-[12px] text-slate-400">
                 собрана {{ dayjs(resume.digest_updated_at).format('DD.MM.YYYY HH:mm') }}
               </span>
               <Button
@@ -314,7 +314,7 @@ function onFail(error: unknown) {
                 size="small"
                 severity="secondary"
                 outlined
-                :label="resume.digest_json ? 'Пересобрать' : 'Собрать'"
+                :label="resume?.digest_json ? 'Пересобрать' : 'Собрать'"
                 :disabled="form.raw_text.trim().length === 0"
                 :loading="rebuildDigest.isPending.value"
                 @click="rebuild"
@@ -328,7 +328,7 @@ function onFail(error: unknown) {
               Локальная модель читает резюме целиком — это занимает около минуты.
             </p>
             <pre
-              v-if="resume.digest_json"
+              v-if="resume?.digest_json"
               class="mt-3 max-h-56 overflow-auto rounded-[10px] bg-slate-50 p-3 font-mono text-[12px] text-slate-700"
               >{{ JSON.stringify(resume.digest_json, null, 2) }}</pre>
           </div>

@@ -4,6 +4,7 @@
 и корень репозитория попадал в него дважды.
 """
 
+import os
 import sqlite3
 from pathlib import Path
 
@@ -20,6 +21,7 @@ class TestПутьКБазе:
 
         assert settings.database_path == ROOT_DIR / "data" / "jobpilot.db"
 
+    @pytest.mark.skipif(os.name == "nt", reason="POSIX-путь /var не абсолютен в Windows")
     def test_абсолютный_путь_остаётся_абсолютным(self) -> None:
         # Именно здесь ломалось: корень приклеивался второй раз
         settings = Settings(database_url="sqlite+aiosqlite:////var/lib/jobpilot.db")
@@ -29,7 +31,7 @@ class TestПутьКБазе:
     def test_url_собирается_обратно_без_потерь(self) -> None:
         settings = Settings(database_url="sqlite+aiosqlite:///./data/jobpilot.db")
 
-        assert settings.sqlalchemy_url.startswith("sqlite+aiosqlite:////")
+        assert settings.sqlalchemy_url == f"sqlite+aiosqlite:///{settings.database_path}"
         assert str(ROOT_DIR) in settings.sqlalchemy_url
         # Повторная сборка не должна удваивать путь
         assert settings.sqlalchemy_url.count(str(ROOT_DIR)) == 1

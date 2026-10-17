@@ -4,6 +4,7 @@
 раскрывать ключи от Anthropic, OpenAI и OpenRouter.
 """
 
+import os
 import sqlite3
 from pathlib import Path
 
@@ -58,6 +59,7 @@ class TestШифрование:
 
         assert secrets.decrypt(encrypted) is None
 
+    @pytest.mark.skipif(os.name == "nt", reason="Windows использует ACL вместо POSIX-прав")
     def test_файл_ключа_недоступен_другим_пользователям(self, key_file: Path) -> None:
         secrets.encrypt(KEY)
 

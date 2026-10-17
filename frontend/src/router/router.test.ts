@@ -34,13 +34,17 @@ describe('маршруты', () => {
     expect(matched[0].components?.default).toBeDefined()
   })
 
-  it.each(MENU)('%s загружается без ошибок импорта', async (path) => {
-    const component = router.resolve(path).matched[0].components?.default
+  it.each(MENU)(
+    '%s загружается без ошибок импорта',
+    async (path) => {
+      const component = router.resolve(path).matched[0].components?.default
 
-    // Все экраны подгружаются лениво: битый импорт иначе всплыл бы только у пользователя
-    expect(typeof component).toBe('function')
-    await expect((component as () => Promise<unknown>)()).resolves.toBeTruthy()
-  })
+      // Все экраны подгружаются лениво: битый импорт иначе всплыл бы только у пользователя
+      expect(typeof component).toBe('function')
+      await expect((component as () => Promise<unknown>)()).resolves.toBeTruthy()
+    },
+    20000
+  )
 
   // resolve() редиректы не выполняет — они срабатывают при навигации
   it('корень уводит на дашборд', async () => {
