@@ -7,7 +7,7 @@ import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { useToast } from 'primevue/usetoast'
-import { Mail, Plus, Trash2 } from 'lucide-vue-next'
+import { Mail, Pencil, Plus, Trash2 } from 'lucide-vue-next'
 import { toMessage } from '@/api/client'
 import { createLetterExample, deleteLetterExample, patchLetterExample } from '@/api/catalogs'
 import EmptyState from '@/components/EmptyState.vue'
@@ -121,6 +121,15 @@ function submit() {
             </p>
           </div>
           <div class="flex shrink-0 items-center gap-2">
+            <Button
+              size="small"
+              severity="secondary"
+              outlined
+              label="Изменить"
+              @click="openEdit(example)"
+            >
+              <template #icon><Pencil class="mr-1.5 size-3.5" /></template>
+            </Button>
             <ToggleSwitch
               :model-value="example.is_active"
               @update:model-value="

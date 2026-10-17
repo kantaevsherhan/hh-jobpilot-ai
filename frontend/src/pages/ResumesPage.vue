@@ -10,7 +10,7 @@ import Tag from 'primevue/tag'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
-import { Archive, Copy, ExternalLink, Plus, Trash2 } from 'lucide-vue-next'
+import { Archive, Copy, ExternalLink, Pencil, Plus, Trash2 } from 'lucide-vue-next'
 import dayjs from 'dayjs'
 import { toMessage } from '@/api/client'
 import {
@@ -105,7 +105,8 @@ const dateFormat = (value: string) => dayjs(value).format('DD.MM.YYYY')
     <div class="mb-4 flex items-center gap-4">
       <p class="max-w-prose text-[13.5px] leading-relaxed text-slate-600">
         Текст резюме — источник истины для всего приложения: из него собирается выжимка, по нему
-        пишутся письма и проверяются факты.
+        пишутся письма и проверяются факты. Нажмите «Редактировать», чтобы изменить текст, навыки,
+        пороги и настройки писем.
       </p>
       <div class="ml-auto flex shrink-0 items-center gap-3">
         <label class="flex items-center gap-2 text-[13px] text-slate-600">
@@ -179,9 +180,18 @@ const dateFormat = (value: string) => dayjs(value).format('DD.MM.YYYY')
         </template>
       </Column>
 
-      <Column class="w-40">
+      <Column header="Действия" class="w-56">
         <template #body="{ data }: { data: Resume }">
           <div class="flex justify-end gap-1" @click.stop>
+            <Button
+              size="small"
+              severity="secondary"
+              outlined
+              label="Редактировать"
+              @click="openResume(data)"
+            >
+              <template #icon><Pencil class="mr-1.5 size-3.5" /></template>
+            </Button>
             <a
               v-if="data.hh_resume_url"
               v-tooltip.top="'Открыть на hh.kz'"

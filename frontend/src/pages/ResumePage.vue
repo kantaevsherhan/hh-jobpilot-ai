@@ -189,7 +189,7 @@ function onFail(error: unknown) {
         </div>
         <Textarea
           v-model="form.raw_text"
-          class="w-full font-mono text-[12.5px] leading-relaxed"
+          class="w-full text-[12.5px] leading-relaxed"
           rows="14"
           placeholder="Вставьте текст резюме с hh.kz как есть"
         />
@@ -197,7 +197,9 @@ function onFail(error: unknown) {
 
       <div class="mt-4">
         <div class="mb-1.5 flex items-baseline gap-2">
-          <label class="text-[12.5px] font-medium text-slate-600">Allowed Facts</label>
+          <label class="text-[12.5px] font-medium text-slate-600"
+            >Дополнительные разрешённые факты</label
+          >
           <span class="text-[12px] text-slate-400">по факту на строку · {{ factsCount }}</span>
         </div>
         <Textarea
@@ -329,7 +331,7 @@ function onFail(error: unknown) {
             </p>
             <pre
               v-if="resume?.digest_json"
-              class="mt-3 max-h-56 overflow-auto rounded-[10px] bg-slate-50 p-3 font-mono text-[12px] text-slate-700"
+              class="mt-3 max-h-56 overflow-auto rounded-[10px] bg-slate-50 p-3 text-[12px] text-slate-700"
               >{{ JSON.stringify(resume.digest_json, null, 2) }}</pre>
           </div>
         </div>

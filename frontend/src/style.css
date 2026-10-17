@@ -1,6 +1,18 @@
 @import 'tailwindcss';
 @import 'tailwindcss-primeui';
 
+@font-face {
+  font-family: Onest;
+  src: url('./assets/fonts/Onest-variable.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: Onest, system-ui, sans-serif;
+}
+
 html,
 body,
 #app {
@@ -9,12 +21,14 @@ body,
 
 body {
   margin: 0;
-  font-family:
-    Inter,
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    sans-serif;
+  font-family: Onest, system-ui, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
 /*

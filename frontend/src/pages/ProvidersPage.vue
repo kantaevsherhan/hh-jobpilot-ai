@@ -9,7 +9,7 @@ import Select from 'primevue/select'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
-import { CheckCircle2, Plug, Plus, Trash2, XCircle } from 'lucide-vue-next'
+import { CheckCircle2, Pencil, Plug, Plus, Trash2, XCircle } from 'lucide-vue-next'
 import { testProvider } from '@/api/llm'
 import { toMessage } from '@/api/client'
 import {
@@ -20,7 +20,13 @@ import {
   useRouting,
   useSaveRouting
 } from '@/queries/llm'
-import { PROVIDER_TYPES, ROUTING_STEPS, type Provider, type ProviderTest } from '@/schemas/llm'
+import {
+  PROVIDER_TYPES,
+  ROUTING_STEPS,
+  type Provider,
+  type ProviderInput,
+  type ProviderTest
+} from '@/schemas/llm'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -35,6 +41,7 @@ const saveRouting = useSaveRouting()
 const typeOptions = PROVIDER_TYPES.map((value) => ({ value, label: value }))
 
 const dialog = ref(false)
+const editingProvider = ref<Provider | null>(null)
 const form = reactive({
   name: '',
   type: 'ollama' as string,
@@ -56,6 +63,7 @@ function fail(error: unknown) {
 }
 
 function openDialog() {
+  editingProvider.value = null
   Object.assign(form, {
     name: '',
     type: 'ollama',
@@ -69,26 +77,58 @@ function openDialog() {
   dialog.value = true
 }
 
+function openEdit(provider: Provider) {
+  editingProvider.value = provider
+  Object.assign(form, {
+    name: provider.name,
+    type: provider.type,
+    model: provider.model ?? '',
+    base_url: provider.base_url ?? '',
+    api_key: '',
+    command: String(provider.extra_json.command ?? 'claude'),
+    temperature: provider.temperature,
+    timeout_sec: provider.timeout_sec
+  })
+  dialog.value = true
+}
+
 function submit() {
   if (!form.name.trim()) return
-  createProvider.mutate(
-    {
-      name: form.name.trim(),
-      type: form.type,
-      model: form.model.trim() || null,
-      base_url: form.base_url.trim() || null,
-      api_key: form.api_key.trim() || null,
-      temperature: form.temperature,
-      timeout_sec: form.timeout_sec,
-      extra_json: isCli.value ? { command: form.command } : {}
-    },
-    {
+  const payload: ProviderInput = {
+    name: form.name.trim(),
+    type: form.type,
+    model: form.model.trim() || null,
+    base_url: form.base_url.trim() || null,
+    temperature: form.temperature,
+    timeout_sec: form.timeout_sec,
+    extra_json: isCli.value
+      ? { ...(editingProvider.value?.extra_json ?? {}), command: form.command.trim() }
+      : (editingProvider.value?.extra_json ?? {})
+  }
+  const key = form.api_key.trim()
+  if (key || !editingProvider.value) payload.api_key = key || null
+
+  if (editingProvider.value) {
+    const id = editingProvider.value.id
+    patchProvider.mutate(
+      { id, payload },
+      {
+        onSuccess: () => {
+          dialog.value = false
+          delete testResults.value[id]
+          toast.add({ severity: 'success', summary: 'Провайдер сохранён', life: 2000 })
+        },
+        onError: fail
+      }
+    )
+  } else {
+    createProvider.mutate(payload, {
       onSuccess: () => {
         dialog.value = false
       },
       onError: fail
-    }
-  )
+    })
+  }
 }
 
 async function runTest(provider: Provider) {
@@ -158,8 +198,8 @@ const providerOptions = computed(() =>
           <p class="mt-1 max-w-prose text-[13px] leading-relaxed text-slate-600">
             Ключи хранятся в базе зашифрованными и наружу отдаются маской. Ключ шифрования лежит в
             настройках пользователя, а не в
-            <span class="font-mono">data/</span>, поэтому резервная копия базы его не уносит.
-            Локальная модель ключа не требует.
+            <span class="">data/</span>, поэтому резервная копия базы его не уносит. Локальная
+            модель ключа не требует.
           </p>
         </div>
         <Button class="ml-auto shrink-0" size="small" label="Добавить" @click="openDialog">
@@ -186,14 +226,14 @@ const providerOptions = computed(() =>
           :key="provider.id"
           class="rounded-[14px] border border-slate-200 bg-white px-4 py-3"
         >
-          <div class="flex items-center gap-3">
-            <div class="min-w-0 flex-1">
-              <div class="flex items-baseline gap-2">
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="min-w-0 flex-1 basis-80">
+              <div class="flex flex-wrap items-baseline gap-2">
                 <span class="text-[13.5px] font-medium text-slate-800">{{ provider.name }}</span>
                 <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">
                   {{ provider.type }}
                 </span>
-                <span v-if="provider.model" class="font-mono text-[12px] text-slate-500">
+                <span v-if="provider.model" class="text-[12px] text-slate-500">
                   {{ provider.model }}
                 </span>
               </div>
@@ -215,8 +255,18 @@ const providerOptions = computed(() =>
               :loading="testResults[provider.id] === 'running'"
               @click="runTest(provider)"
             />
+            <Button
+              size="small"
+              severity="secondary"
+              outlined
+              label="Изменить"
+              @click="openEdit(provider)"
+            >
+              <template #icon><Pencil class="mr-1.5 size-3.5" /></template>
+            </Button>
             <button
               type="button"
+              :aria-label="`Удалить провайдера ${provider.name}`"
               class="flex size-8 items-center justify-center rounded-[9px] text-slate-500 hover:bg-red-50 hover:text-red-700"
               @click="onDelete(provider)"
             >
@@ -240,9 +290,7 @@ const providerOptions = computed(() =>
             <div class="min-w-0">
               <template v-if="(testResults[provider.id] as ProviderTest).ok">
                 Ответил за {{ (testResults[provider.id] as ProviderTest).elapsed_sec }} сек:
-                <span class="font-mono">{{
-                  (testResults[provider.id] as ProviderTest).response
-                }}</span>
+                <span class="">{{ (testResults[provider.id] as ProviderTest).response }}</span>
               </template>
               <template v-else>
                 {{ (testResults[provider.id] as ProviderTest).error }}
@@ -296,7 +344,7 @@ const providerOptions = computed(() =>
     <Dialog
       v-model:visible="dialog"
       modal
-      header="Новый провайдер"
+      :header="editingProvider ? 'Редактировать провайдера' : 'Новый провайдер'"
       :style="{ width: '30rem', borderRadius: '18px' }"
     >
       <div class="space-y-3">
@@ -311,6 +359,7 @@ const providerOptions = computed(() =>
             :options="typeOptions"
             option-label="label"
             option-value="value"
+            :disabled="editingProvider !== null"
             fluid
             class="w-full"
           />
@@ -328,7 +377,17 @@ const providerOptions = computed(() =>
         </div>
         <div v-if="needsKey">
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">API-ключ</label>
-          <InputText v-model="form.api_key" type="password" fluid class="w-full" />
+          <InputText
+            v-model="form.api_key"
+            type="password"
+            autocomplete="new-password"
+            fluid
+            class="w-full"
+          />
+          <p v-if="editingProvider?.api_key_masked" class="mt-1 text-[12px] text-slate-500">
+            Сейчас сохранён ключ {{ editingProvider.api_key_masked }}. Оставьте поле пустым, чтобы
+            сохранить его; введите новый ключ для замены.
+          </p>
         </div>
         <div v-if="form.type === 'ollama' || form.type === 'openrouter'">
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Адрес</label>
@@ -336,7 +395,9 @@ const providerOptions = computed(() =>
             v-model="form.base_url"
             fluid
             class="w-full"
-            placeholder="http://localhost:11434"
+            :placeholder="
+              form.type === 'openrouter' ? 'https://openrouter.ai/api/v1' : 'http://localhost:11434'
+            "
           />
         </div>
         <div class="grid grid-cols-2 gap-3">
@@ -371,9 +432,9 @@ const providerOptions = computed(() =>
       <template #footer>
         <Button label="Отмена" severity="secondary" outlined size="small" @click="dialog = false" />
         <Button
-          label="Добавить"
+          :label="editingProvider ? 'Сохранить' : 'Добавить'"
           size="small"
-          :loading="createProvider.isPending.value"
+          :loading="createProvider.isPending.value || patchProvider.isPending.value"
           @click="submit"
         />
       </template>

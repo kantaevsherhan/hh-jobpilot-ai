@@ -12,7 +12,7 @@ const tone = computed(() => {
 </script>
 
 <template>
-  <span class="font-mono text-[13px] tabular-nums" :class="tone">
+  <span class="text-[13px] tabular-nums" :class="tone">
     {{ score ?? '—' }}
   </span>
 </template>

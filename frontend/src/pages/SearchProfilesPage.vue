@@ -9,7 +9,7 @@ import Select from 'primevue/select'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
-import { Play, Plus, Search, Trash2 } from 'lucide-vue-next'
+import { Pencil, Play, Plus, Search, Trash2 } from 'lucide-vue-next'
 import { toMessage } from '@/api/client'
 import { createSearchProfile, deleteSearchProfile, patchSearchProfile } from '@/api/catalogs'
 import EmptyState from '@/components/EmptyState.vue'
@@ -295,6 +295,15 @@ const areaLabel = (codes: unknown[]) =>
                 )
               "
             />
+            <Button
+              size="small"
+              severity="secondary"
+              outlined
+              label="Изменить"
+              @click="openEdit(profile)"
+            >
+              <template #icon><Pencil class="mr-1.5 size-3.5" /></template>
+            </Button>
             <Button
               size="small"
               severity="secondary"

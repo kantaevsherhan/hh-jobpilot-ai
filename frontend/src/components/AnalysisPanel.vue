@@ -58,7 +58,7 @@ const instructions = computed(() => props.hiddenInstructions.map((item) => Strin
     <div v-if="analysis.score_breakdown" class="flex flex-wrap gap-x-6 gap-y-1.5">
       <div v-for="(value, key) in analysis.score_breakdown" :key="key">
         <span class="text-[12px] text-slate-500">{{ key }}</span>
-        <span class="ml-1.5 font-mono text-[13px] tabular-nums text-slate-800">{{ value }}</span>
+        <span class="ml-1.5 text-[13px] tabular-nums text-slate-800">{{ value }}</span>
       </div>
     </div>
 

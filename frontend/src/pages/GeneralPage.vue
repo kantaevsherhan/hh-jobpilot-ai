@@ -73,7 +73,7 @@ function save() {
 
       <div class="flex flex-wrap gap-3">
         <div v-for="(_, code) in rates" :key="code" class="w-28">
-          <label class="mb-1 block font-mono text-[11.5px] tracking-wide text-slate-500">
+          <label class="mb-1 block text-[11.5px] tracking-wide text-slate-500">
             {{ code }}
           </label>
           <InputNumber

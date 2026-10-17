@@ -87,7 +87,7 @@ const money = (value: number | null) =>
         class="rounded-[14px] border border-slate-200 bg-white px-4 py-3 no-underline transition-colors hover:border-slate-300"
       >
         <p class="text-[12px] text-slate-500">{{ card.label }}</p>
-        <p class="mt-0.5 font-mono text-[22px] tracking-tight tabular-nums text-slate-900">
+        <p class="mt-0.5 text-[22px] tracking-tight tabular-nums text-slate-900">
           {{ card.value }}
         </p>
       </RouterLink>
@@ -127,7 +127,7 @@ const money = (value: number | null) =>
           <div v-for="stage in funnel.data.value ?? []" :key="stage.stage">
             <div class="mb-1 flex items-baseline justify-between">
               <span class="text-[12.5px] text-slate-600">{{ stage.stage }}</span>
-              <span class="font-mono text-[12.5px] tabular-nums text-slate-800">
+              <span class="text-[12.5px] tabular-nums text-slate-800">
                 {{ stage.value }}
               </span>
             </div>
@@ -149,25 +149,25 @@ const money = (value: number | null) =>
         <dl v-else class="space-y-1.5 text-[13px]">
           <div class="flex justify-between">
             <dt class="text-slate-500">Медиана</dt>
-            <dd class="font-mono tabular-nums text-slate-900">
+            <dd class="tabular-nums text-slate-900">
               {{ money(salaries.data.value?.median ?? null) }}
             </dd>
           </div>
           <div class="flex justify-between">
             <dt class="text-slate-500">Среднее</dt>
-            <dd class="font-mono tabular-nums text-slate-700">
+            <dd class="tabular-nums text-slate-700">
               {{ money(salaries.data.value?.avg ?? null) }}
             </dd>
           </div>
           <div class="flex justify-between">
             <dt class="text-slate-500">Минимум</dt>
-            <dd class="font-mono tabular-nums text-slate-700">
+            <dd class="tabular-nums text-slate-700">
               {{ money(salaries.data.value?.min ?? null) }}
             </dd>
           </div>
           <div class="flex justify-between">
             <dt class="text-slate-500">Максимум</dt>
-            <dd class="font-mono tabular-nums text-slate-700">
+            <dd class="tabular-nums text-slate-700">
               {{ money(salaries.data.value?.max ?? null) }}
             </dd>
           </div>

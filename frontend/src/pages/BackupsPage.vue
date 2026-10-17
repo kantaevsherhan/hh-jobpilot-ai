@@ -48,7 +48,7 @@ function makeBackup() {
             решения, письма и отклики. Ключи внешних провайдеров в копии зашифрованы — ключ
             шифрования хранится отдельно и в копию не попадает.
           </p>
-          <p v-if="lastPath" class="mt-2 font-mono text-[12px] break-all text-slate-600">
+          <p v-if="lastPath" class="mt-2 text-[12px] break-all text-slate-600">
             {{ lastPath }}
           </p>
         </div>

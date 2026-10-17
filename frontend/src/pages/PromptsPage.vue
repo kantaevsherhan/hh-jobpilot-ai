@@ -67,7 +67,10 @@ function restore() {
 <template>
   <div v-if="isPending" class="text-[13px] text-slate-500">Загружается…</div>
 
-  <div v-else class="mx-auto grid w-full max-w-7xl grid-cols-1 gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+  <div
+    v-else
+    class="mx-auto grid w-full max-w-7xl grid-cols-1 gap-5 lg:grid-cols-[240px_minmax(0,1fr)]"
+  >
     <nav class="space-y-0.5">
       <button
         v-for="prompt in prompts"
@@ -92,7 +95,7 @@ function restore() {
           <h2 class="text-[15px] font-semibold tracking-tight text-slate-900">
             {{ selected.title }}
           </h2>
-          <p class="mt-0.5 font-mono text-[12px] text-slate-500">{{ selected.key }}</p>
+          <p class="mt-0.5 text-[12px] text-slate-500">{{ selected.key }}</p>
         </div>
         <div class="ml-auto flex gap-2">
           <Button size="small" severity="secondary" outlined label="К дефолту" @click="restore">
@@ -110,7 +113,7 @@ function restore() {
         </div>
       </div>
 
-      <Textarea v-model="draft" class="w-full font-mono text-[12.5px] leading-relaxed" rows="26" />
+      <Textarea v-model="draft" class="w-full text-[12.5px] leading-relaxed" rows="26" />
 
       <p class="mt-2 text-[12px] leading-relaxed text-slate-500">
         Переменные в двойных фигурных скобках подставляются перед отправкой. Незаполненные

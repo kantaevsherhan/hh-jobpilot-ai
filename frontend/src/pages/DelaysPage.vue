@@ -129,7 +129,7 @@ function reset() {
           :step="0.1"
           class="min-w-0 flex-1"
         />
-        <span class="w-12 shrink-0 text-right font-mono text-[13px] tabular-nums text-slate-800">
+        <span class="w-12 shrink-0 text-right text-[13px] tabular-nums text-slate-800">
           {{ delays.speed_multiplier.toFixed(1) }}
         </span>
       </div>

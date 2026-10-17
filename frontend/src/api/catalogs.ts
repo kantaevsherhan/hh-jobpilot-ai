@@ -89,6 +89,14 @@ export async function createCompanyRule(payload: Record<string, unknown>): Promi
   return companyRuleSchema.parse(data)
 }
 
+export async function patchCompanyRule(
+  id: number,
+  payload: Record<string, unknown>
+): Promise<CompanyRule> {
+  const { data } = await api.patch<unknown>(`/company-rules/${String(id)}`, payload)
+  return companyRuleSchema.parse(data)
+}
+
 export async function deleteCompanyRule(id: number): Promise<void> {
   await api.delete(`/company-rules/${String(id)}`)
 }

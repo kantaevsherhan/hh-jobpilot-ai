@@ -6,9 +6,14 @@ import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { useToast } from 'primevue/usetoast'
-import { Building2, FlaskConical, Plus, Trash2 } from 'lucide-vue-next'
+import { Building2, FlaskConical, Pencil, Plus, Trash2 } from 'lucide-vue-next'
 import { toMessage } from '@/api/client'
-import { createCompanyRule, deleteCompanyRule, testCompanyRules } from '@/api/catalogs'
+import {
+  createCompanyRule,
+  deleteCompanyRule,
+  patchCompanyRule,
+  testCompanyRules
+} from '@/api/catalogs'
 import EmptyState from '@/components/EmptyState.vue'
 import { useCompanyRules, useDictionaries, useMutate } from '@/queries'
 import { useUiStore } from '@/stores/ui'
@@ -31,8 +36,10 @@ const form = reactive({
   score_delta: 0,
   case_sensitive: false,
   note: '',
-  forAllResumes: true
+  forAllResumes: true,
+  enabled: true
 })
+const editingRule = ref<CompanyRule | null>(null)
 
 const testName = ref('')
 const testResult = ref<{ value: string; action: string; score_delta: number }[] | null>(null)
@@ -43,29 +50,55 @@ function fail(error: unknown) {
 }
 
 const create = useMutate(['company-rules'], createCompanyRule)
+const patch = useMutate(
+  ['company-rules'],
+  (args: { id: number; payload: Record<string, unknown> }) =>
+    patchCompanyRule(args.id, args.payload)
+)
 const remove = useMutate(['company-rules'], deleteCompanyRule)
+
+function resetForm() {
+  editingRule.value = null
+  Object.assign(form, {
+    value: '',
+    match_type: 'CONTAINS',
+    action: 'SKIP',
+    score_delta: 0,
+    case_sensitive: false,
+    note: '',
+    forAllResumes: true,
+    enabled: true
+  })
+}
+
+function openEdit(rule: CompanyRule) {
+  editingRule.value = rule
+  Object.assign(form, {
+    value: rule.value,
+    match_type: rule.match_type,
+    action: rule.action,
+    score_delta: rule.score_delta,
+    case_sensitive: rule.case_sensitive,
+    note: rule.note ?? '',
+    forAllResumes: rule.resume_id === null,
+    enabled: rule.enabled
+  })
+}
 
 function submit() {
   if (!form.value.trim()) return
-  create.mutate(
-    {
-      resume_id: form.forAllResumes ? null : ui.resumeId,
-      value: form.value.trim(),
-      match_type: form.match_type,
-      action: form.action,
-      score_delta: form.score_delta,
-      case_sensitive: form.case_sensitive,
-      note: form.note.trim() || null
-    },
-    {
-      onSuccess: () => {
-        form.value = ''
-        form.note = ''
-        form.score_delta = 0
-      },
-      onError: fail
-    }
-  )
+  const payload = {
+    value: form.value.trim(),
+    match_type: form.match_type,
+    action: form.action,
+    score_delta: form.score_delta,
+    case_sensitive: form.case_sensitive,
+    note: form.note.trim() || null,
+    enabled: form.enabled
+  }
+  const callbacks = { onSuccess: resetForm, onError: fail }
+  if (editingRule.value) patch.mutate({ id: editingRule.value.id, payload }, callbacks)
+  else create.mutate({ ...payload, resume_id: form.forAllResumes ? null : ui.resumeId }, callbacks)
 }
 
 async function runTest() {
@@ -116,25 +149,42 @@ function ruleLine(rule: CompanyRule): string {
         >
           <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-baseline gap-2">
-              <span class="font-mono text-[13px] text-slate-800">{{ rule.value }}</span>
+              <span class="text-[13px] text-slate-800">{{ rule.value }}</span>
               <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11.5px] text-slate-700">
                 {{ actionLabel(rule.action) }}
               </span>
               <span
                 v-if="rule.score_delta !== 0"
-                class="font-mono text-[12px]"
+                class="text-[12px] tabular-nums"
                 :class="rule.score_delta > 0 ? 'text-teal-800' : 'text-red-700'"
               >
                 {{ rule.score_delta > 0 ? '+' : '' }}{{ rule.score_delta }}
               </span>
             </div>
             <p class="mt-0.5 text-[12px] text-slate-500">{{ ruleLine(rule) }}</p>
+            <p v-if="!rule.enabled" class="mt-0.5 text-[12px] text-amber-700">Выключено</p>
             <p v-if="rule.note" class="mt-0.5 text-[12.5px] text-slate-600">{{ rule.note }}</p>
           </div>
           <button
             type="button"
+            :aria-label="`Изменить правило ${rule.value}`"
+            class="flex size-8 shrink-0 items-center justify-center rounded-[9px] text-slate-500 hover:bg-slate-100"
+            @click="openEdit(rule)"
+          >
+            <Pencil class="size-4" />
+          </button>
+          <button
+            type="button"
+            :aria-label="`Удалить правило ${rule.value}`"
             class="flex size-8 shrink-0 items-center justify-center rounded-[9px] text-slate-500 hover:bg-red-50 hover:text-red-700"
-            @click="remove.mutate(rule.id, { onError: fail })"
+            @click="
+              remove.mutate(rule.id, {
+                onSuccess: () => {
+                  if (editingRule?.id === rule.id) resetForm()
+                },
+                onError: fail
+              })
+            "
           >
             <Trash2 class="size-4" />
           </button>
@@ -144,7 +194,9 @@ function ruleLine(rule: CompanyRule): string {
 
     <aside class="space-y-4">
       <div class="rounded-[14px] border border-slate-200 bg-white p-4">
-        <h3 class="mb-3 text-[13.5px] font-semibold text-slate-800">Новое правило</h3>
+        <h3 class="mb-3 text-[13.5px] font-semibold text-slate-800">
+          {{ editingRule ? 'Изменить правило' : 'Новое правило' }}
+        </h3>
         <div class="space-y-2.5">
           <InputText
             v-model="form.value"
@@ -193,19 +245,37 @@ function ruleLine(rule: CompanyRule): string {
             Учитывать регистр
           </label>
           <label class="flex items-center gap-2 text-[12.5px] text-slate-700">
-            <ToggleSwitch v-model="form.forAllResumes" />
+            <ToggleSwitch v-model="form.enabled" />
+            Правило включено
+          </label>
+          <label class="flex items-center gap-2 text-[12.5px] text-slate-700">
+            <ToggleSwitch v-model="form.forAllResumes" :disabled="editingRule !== null" />
             Для всех резюме
           </label>
+          <p v-if="editingRule" class="text-[12px] text-slate-500">
+            Область действия правила после создания не меняется.
+          </p>
           <Button
             class="w-full"
             size="small"
-            label="Добавить"
+            :label="editingRule ? 'Сохранить' : 'Добавить'"
             :disabled="!form.value.trim()"
-            :loading="create.isPending.value"
+            :loading="create.isPending.value || patch.isPending.value"
             @click="submit"
           >
-            <template #icon><Plus class="mr-1.5 size-3.5" /></template>
+            <template #icon
+              ><component :is="editingRule ? Pencil : Plus" class="mr-1.5 size-3.5"
+            /></template>
           </Button>
+          <Button
+            v-if="editingRule"
+            class="w-full"
+            size="small"
+            severity="secondary"
+            outlined
+            label="Отмена"
+            @click="resetForm"
+          />
         </div>
       </div>
 
@@ -231,8 +301,8 @@ function ruleLine(rule: CompanyRule): string {
           <p v-if="testResult.length === 0" class="text-slate-500">Ни одно правило не сработало.</p>
           <ul v-else class="space-y-1">
             <li v-for="match in testResult" :key="match.value" class="text-slate-700">
-              <span class="font-mono">{{ match.value }}</span> → {{ actionLabel(match.action) }}
-              <span v-if="match.score_delta" class="font-mono">({{ match.score_delta }})</span>
+              <span>{{ match.value }}</span> → {{ actionLabel(match.action) }}
+              <span v-if="match.score_delta" class="tabular-nums">({{ match.score_delta }})</span>
             </li>
           </ul>
         </div>

@@ -120,7 +120,7 @@ const TONES: Record<string, string> = {
       <div class="mt-4 flex flex-wrap gap-x-6 gap-y-2">
         <div v-for="(label, key) in COUNTER_LABELS" :key="key">
           <span class="text-[12px] text-slate-500">{{ label }}</span>
-          <span class="ml-1.5 font-mono text-[13px] tabular-nums text-slate-800">
+          <span class="ml-1.5 text-[13px] tabular-nums text-slate-800">
             {{ counters[key] ?? 0 }}
           </span>
         </div>
@@ -159,7 +159,7 @@ const TONES: Record<string, string> = {
             class="mt-0.5 size-3.5 shrink-0"
             :class="TONES[event.level] ?? 'text-slate-500'"
           />
-          <span class="shrink-0 font-mono text-[11.5px] text-slate-400">
+          <span class="shrink-0 text-[11.5px] text-slate-400">
             {{ formatTime(event.created_at) }}
           </span>
           <span class="min-w-0 flex-1 text-[13px]" :class="TONES[event.level] ?? 'text-slate-700'">

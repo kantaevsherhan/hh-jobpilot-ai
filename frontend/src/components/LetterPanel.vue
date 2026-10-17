@@ -177,7 +177,7 @@ function missingInstructions(letter: Letter): string[] {
           "
           @click="pick.mutate(letter.id, { onError: fail })"
         >
-          <span class="font-mono text-[12px] text-slate-500">v{{ letter.version }}</span>
+          <span class="text-[12px] text-slate-500">v{{ letter.version }}</span>
           <span class="text-slate-700">{{ letter.source }}</span>
           <span class="text-slate-400">{{ letter.char_count }} симв.</span>
           <component
