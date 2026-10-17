@@ -63,7 +63,7 @@ function save() {
 <template>
   <div v-if="isPending" class="text-[13px] text-slate-500">Загружается…</div>
 
-  <div v-else class="max-w-3xl pb-10">
+  <div v-else class="mx-auto w-full max-w-5xl pb-10">
     <section class="rounded-[14px] border border-slate-200 bg-white p-5">
       <h3 class="text-[13.5px] font-semibold text-slate-800">Курсы валют</h3>
       <p class="mt-1 mb-4 max-w-prose text-[12.5px] leading-relaxed text-slate-500">

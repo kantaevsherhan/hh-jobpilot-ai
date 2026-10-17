@@ -150,7 +150,7 @@ const providerOptions = computed(() =>
 </script>
 
 <template>
-  <div class="max-w-5xl">
+  <div class="mx-auto w-full max-w-7xl">
     <section>
       <div class="mb-3 flex items-end gap-4">
         <div>

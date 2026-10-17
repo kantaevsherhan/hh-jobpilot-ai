@@ -67,7 +67,7 @@ function restore() {
 <template>
   <div v-if="isPending" class="text-[13px] text-slate-500">Загружается…</div>
 
-  <div v-else class="grid max-w-6xl grid-cols-[240px_1fr] gap-5">
+  <div v-else class="mx-auto grid w-full max-w-7xl grid-cols-1 gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
     <nav class="space-y-0.5">
       <button
         v-for="prompt in prompts"

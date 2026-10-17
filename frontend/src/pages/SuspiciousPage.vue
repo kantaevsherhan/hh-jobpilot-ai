@@ -44,7 +44,7 @@ function reasons(row: VacancyRow): string[] {
     />
   </div>
 
-  <div v-else class="max-w-3xl space-y-2">
+  <div v-else class="mx-auto w-full max-w-6xl space-y-2">
     <p class="mb-3 max-w-prose text-[13px] leading-relaxed text-slate-600">
       Бот на эти вакансии не откликается. Если какая-то на самом деле нормальная — снимите пометку,
       и она вернётся в общий поток.

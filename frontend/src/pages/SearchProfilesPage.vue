@@ -212,7 +212,7 @@ const areaLabel = (codes: unknown[]) =>
 </script>
 
 <template>
-  <div class="max-w-4xl">
+  <div class="mx-auto w-full max-w-7xl">
     <div class="mb-4 flex items-start gap-4">
       <p class="max-w-prose text-[13px] leading-relaxed text-slate-600">
         Профиль — это набор поисковых запросов и условий отбора. Одна вакансия, найденная тремя

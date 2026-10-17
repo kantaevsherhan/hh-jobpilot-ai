@@ -51,7 +51,7 @@ function onError(error: unknown) {
 </script>
 
 <template>
-  <div class="max-w-2xl">
+  <div class="mx-auto w-full max-w-5xl">
     <div class="rounded-[14px] border border-slate-200 bg-white p-5">
       <div class="flex items-start gap-3">
         <span class="flex size-9 items-center justify-center rounded-[10px]" :class="view.bg">
@@ -65,12 +65,12 @@ function onError(error: unknown) {
         </div>
       </div>
 
-      <p class="mt-4 max-w-prose text-[13px] leading-relaxed text-slate-600">
+      <p class="mt-4 max-w-3xl text-[13px] leading-relaxed text-slate-600">
         Это первый шаг перед работой. Бот открывает отдельное окно браузера, а входите в hh.kz вы сами
         — своим логином. Ничего не регистрируется, пароли не подбираются, капча не обходится. Дальше
         поиск, карточки и отклики идут от вашего аккаунта.
       </p>
-      <p class="mt-2 max-w-prose text-[13px] leading-relaxed text-slate-600">
+      <p class="mt-2 max-w-3xl text-[13px] leading-relaxed text-slate-600">
         Профиль браузера лежит на диске, поэтому вход переживает перезапуск приложения — логиниться
         каждый раз не придётся. Скрытый режим запрещён: вы должны видеть, что происходит, и иметь
         возможность вмешаться.

@@ -92,7 +92,7 @@ function ruleLine(rule: CompanyRule): string {
 </script>
 
 <template>
-  <div class="grid max-w-5xl grid-cols-[1fr_320px] gap-5">
+  <div class="mx-auto grid w-full max-w-7xl grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
     <section>
       <p class="mb-3 max-w-prose text-[13px] leading-relaxed text-slate-600">
         Правило «содержит vash» поймает «Vash Group», «VASH COMPANY» и «ТОО Vash». Штрафы и бонусы

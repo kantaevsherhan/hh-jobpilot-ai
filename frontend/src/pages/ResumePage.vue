@@ -131,7 +131,7 @@ function onFail(error: unknown) {
 <template>
   <div v-if="isPending" class="text-[13.5px] text-slate-500">Загружается…</div>
 
-  <div v-else-if="resume" class="max-w-4xl pb-10">
+  <div v-else-if="resume" class="mx-auto w-full max-w-6xl pb-10">
     <div class="mb-5 flex items-center gap-3">
       <button
         type="button"
@@ -213,7 +213,7 @@ function onFail(error: unknown) {
       </div>
     </section>
 
-    <section class="mt-4 grid grid-cols-[1fr_260px] gap-4">
+    <section class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
       <div class="rounded-[14px] border border-slate-200 bg-white p-5">
         <div class="mb-2 flex items-baseline gap-2">
           <h3 class="text-[13.5px] font-semibold text-slate-800">Навыки</h3>
@@ -282,7 +282,7 @@ function onFail(error: unknown) {
       </div>
     </section>
 
-    <section class="mt-4 grid grid-cols-[260px_1fr] gap-4">
+    <section class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
       <div class="rounded-[14px] border border-slate-200 bg-white p-5">
         <h3 class="mb-3 text-[13.5px] font-semibold text-slate-800">Языки писем</h3>
         <label

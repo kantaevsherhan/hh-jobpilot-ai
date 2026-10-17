@@ -103,7 +103,7 @@ async function applyAndNext() {
     />
   </div>
 
-  <div v-else class="mx-auto max-w-3xl">
+  <div v-else class="mx-auto w-full max-w-5xl">
     <p class="mb-3 text-[12.5px] text-slate-500">
       {{ index + 1 }} из {{ data?.items.length ?? 0 }} в очереди
     </p>

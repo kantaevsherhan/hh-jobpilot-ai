@@ -37,7 +37,7 @@ function makeBackup() {
 </script>
 
 <template>
-  <div class="max-w-2xl space-y-4">
+  <div class="mx-auto w-full max-w-5xl space-y-4">
     <section class="rounded-[14px] border border-slate-200 bg-white p-5">
       <div class="flex items-start gap-3">
         <Database class="mt-0.5 size-5 shrink-0 text-slate-400" />

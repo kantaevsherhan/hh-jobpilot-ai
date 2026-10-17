@@ -305,7 +305,7 @@ const sections = [
 </script>
 
 <template>
-  <div class="mx-auto max-w-6xl space-y-6 pb-12">
+  <div class="mx-auto w-full max-w-7xl space-y-6 pb-12">
     <section
       data-tour="welcome"
       class="relative overflow-hidden rounded-[20px] border border-teal-200 bg-gradient-to-br from-teal-950 via-teal-900 to-slate-900 p-6 text-white sm:p-8"

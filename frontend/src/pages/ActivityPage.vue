@@ -96,7 +96,7 @@ const TONES: Record<string, string> = {
 </script>
 
 <template>
-  <div class="max-w-4xl">
+  <div class="mx-auto w-full max-w-7xl">
     <section v-if="activeRun" class="mb-4 rounded-[14px] border border-slate-200 bg-white p-5">
       <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <h2 class="text-[15px] font-semibold tracking-tight text-slate-900">

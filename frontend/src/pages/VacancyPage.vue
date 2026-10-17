@@ -83,7 +83,7 @@ const factCheckFailed = computed(() => selectedLetter.value?.fact_check_passed =
 <template>
   <div v-if="isPending" class="text-[13px] text-slate-500">Загружается…</div>
 
-  <div v-else-if="vacancy" class="max-w-4xl pb-10">
+  <div v-else-if="vacancy" class="mx-auto w-full max-w-6xl pb-10">
     <div class="mb-4 flex items-start gap-3">
       <button
         type="button"

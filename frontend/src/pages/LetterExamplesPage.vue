@@ -70,7 +70,7 @@ function submit() {
 </script>
 
 <template>
-  <div class="max-w-4xl">
+  <div class="mx-auto w-full max-w-6xl">
     <div class="mb-4 flex items-start gap-4">
       <p class="max-w-prose text-[13px] leading-relaxed text-slate-600">
         Два-три примера подставляются в промпт письма как ориентир по тону, структуре и длине.

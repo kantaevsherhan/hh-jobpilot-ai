@@ -11,8 +11,10 @@ import AppSidebar from '@/layouts/AppSidebar.vue'
     <AppSidebar />
     <div class="flex min-w-0 flex-1 flex-col">
       <AppHeader />
-      <main class="flex-1 overflow-y-auto bg-slate-50/60 px-6 py-5">
-        <RouterView />
+      <main class="min-w-0 flex-1 overflow-y-auto bg-slate-50/60 px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+        <div class="mx-auto w-full max-w-[1600px]">
+          <RouterView />
+        </div>
       </main>
     </div>
     <Toast position="bottom-right" />

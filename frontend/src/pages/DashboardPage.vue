@@ -47,7 +47,7 @@ const money = (value: number | null) =>
 </script>
 
 <template>
-  <div v-if="(resumes?.length ?? 0) === 0" class="max-w-3xl">
+  <div v-if="(resumes?.length ?? 0) === 0" class="mx-auto w-full max-w-5xl">
     <RouterLink
       to="/welcome"
       class="mb-4 block rounded-[14px] border border-teal-200 bg-teal-50 px-5 py-4 text-[13px] text-teal-900 no-underline hover:bg-teal-100"
@@ -67,11 +67,11 @@ const money = (value: number | null) =>
     </EmptyState>
   </div>
 
-  <div v-else-if="ui.resumeId === null" class="pt-14">
+  <div v-else-if="ui.resumeId === null" class="mx-auto w-full max-w-5xl pt-14">
     <EmptyState :icon="FileText" title="Выберите резюме" hint="Селектор — в шапке приложения." />
   </div>
 
-  <div v-else class="max-w-5xl">
+  <div v-else class="mx-auto w-full max-w-7xl">
     <RouterLink
       to="/welcome"
       class="mb-4 block rounded-[14px] border border-teal-200 bg-teal-50 px-5 py-4 text-[13px] text-teal-900 no-underline hover:bg-teal-100"
@@ -79,7 +79,7 @@ const money = (value: number | null) =>
       Нужна помощь с настройкой? Откройте пошаговое руководство →
     </RouterLink>
 
-    <section class="grid grid-cols-4 gap-2.5">
+    <section class="grid grid-cols-2 gap-2.5 xl:grid-cols-4">
       <RouterLink
         v-for="card in cards"
         :key="card.label"
@@ -117,7 +117,7 @@ const money = (value: number | null) =>
       </RouterLink>
     </section>
 
-    <div class="mt-4 grid grid-cols-[1fr_320px] gap-4">
+    <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
       <section class="rounded-[14px] border border-slate-200 bg-white p-5">
         <h3 class="mb-3 text-[13.5px] font-semibold text-slate-800">Воронка</h3>
         <div v-if="(funnel.data.value?.[0]?.value ?? 0) === 0" class="text-[13px] text-slate-500">

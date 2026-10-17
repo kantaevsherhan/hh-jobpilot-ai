@@ -18,7 +18,7 @@ const total = computed(() => applications.value?.length ?? 0)
 </script>
 
 <template>
-  <div class="max-w-4xl">
+  <div class="mx-auto w-full max-w-7xl">
     <p class="mb-3 text-[13px] text-slate-600">
       Отправлено откликов: <span class="font-medium text-slate-800">{{ total }}</span>
     </p>

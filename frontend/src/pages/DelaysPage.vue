@@ -112,7 +112,7 @@ function reset() {
 <template>
   <div v-if="isPending" class="text-[13px] text-slate-500">Загружается…</div>
 
-  <div v-else class="max-w-2xl pb-10">
+  <div v-else class="mx-auto w-full max-w-5xl pb-10">
     <p class="mb-4 max-w-prose text-[13px] leading-relaxed text-slate-600">
       Каждая пауза задаётся диапазоном, фактическое значение выбирается случайно внутри него. Это
       ограничение нагрузки на чужой сервер, а не маскировка: ровные интервалы бьют по HH одинаковыми
