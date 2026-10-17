@@ -151,7 +151,7 @@ async function applyAndNext() {
     </article>
 
     <Message v-if="ui.runtimeMode === 'DRY_RUN'" severity="secondary" size="small" class="mt-3">
-      Режим DRY_RUN: форма откроется и заполнится, но кнопка отправки нажата не будет.
+      Пробный режим: форма откроется и заполнится, но отклик работодателю не отправится.
     </Message>
 
     <div class="mt-3 flex items-center gap-2">

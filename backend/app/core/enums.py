@@ -47,7 +47,7 @@ VACANCY_STATUS_LABELS: dict[str, str] = {
     VacancyStatus.LETTER_READY: "Письмо готово",
     VacancyStatus.APPLYING: "Отправляется",
     VacancyStatus.APPLIED: "Отклик отправлен",
-    VacancyStatus.APPLY_PREPARED: "Подготовлен (DRY_RUN)",
+    VacancyStatus.APPLY_PREPARED: "Подготовлен без отправки",
     VacancyStatus.APPLY_FAILED: "Ошибка отклика",
     VacancyStatus.APPLY_UNKNOWN: "Состояние неизвестно",
     VacancyStatus.SKIPPED_BY_USER: "Пропущена вручную",

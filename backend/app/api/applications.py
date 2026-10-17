@@ -135,7 +135,7 @@ async def apply_manually(
         )
         return {
             "status": VacancyStatus.APPLY_PREPARED.value,
-            "message": "Форма заполнена, отправка запрещена режимом DRY_RUN",
+            "message": "Форма заполнена в пробном режиме. Отклик не отправлен",
         }
 
     await delays.pause("before_submit")

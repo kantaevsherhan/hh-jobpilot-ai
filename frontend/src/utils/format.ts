@@ -15,6 +15,18 @@ export const formatTime = (value: string) => dayjs(value).format('HH:mm:ss')
 
 export const fromNow = (value: string | null) => (value === null ? '—' : dayjs(value).fromNow())
 
+export const formatRuntimeMode = (value: string) =>
+  value === 'DRY_RUN' ? 'Пробный режим' : value === 'LIVE' ? 'Реальная отправка' : value
+
+export const formatBotMode = (value: string) =>
+  value === 'MANUAL'
+    ? 'Ручной'
+    : value === 'SEMI_AUTO'
+      ? 'Полуавтомат'
+      : value === 'AUTO'
+        ? 'Автомат'
+        : value
+
 export function formatDuration(from: string, to: string | null): string {
   const minutes = dayjs(to ?? undefined).diff(dayjs(from), 'minute')
   if (minutes < 60) return `${String(minutes)} мин`

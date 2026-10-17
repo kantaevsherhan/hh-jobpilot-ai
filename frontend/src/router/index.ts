@@ -1,7 +1,13 @@
-import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { createRouter, createWebHistory, START_LOCATION, type RouteRecordRaw } from 'vue-router'
 
 const routes: RouteRecordRaw[] = [
-  { path: '/', redirect: '/dashboard' },
+  { path: '/', redirect: '/welcome' },
+  {
+    path: '/welcome',
+    name: 'welcome',
+    meta: { title: 'С чего начать' },
+    component: () => import('@/pages/WelcomePage.vue')
+  },
   {
     path: '/dashboard',
     name: 'dashboard',
@@ -114,6 +120,17 @@ const routes: RouteRecordRaw[] = [
 ]
 
 export const router = createRouter({ history: createWebHistory(), routes })
+
+router.beforeEach((to, from) => {
+  if (to.path !== '/dashboard' || from !== START_LOCATION) return
+  try {
+    if (localStorage.getItem('jobpilot.welcomeSeen') === '1') return
+    localStorage.setItem('jobpilot.welcomeSeen', '1')
+  } catch {
+    // Недоступное хранилище не должно мешать открыть приложение.
+  }
+  return '/welcome'
+})
 
 router.afterEach((to) => {
   const title = typeof to.meta.title === 'string' ? to.meta.title : ''

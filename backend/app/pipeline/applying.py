@@ -101,7 +101,7 @@ async def check_can_apply(
             False,
             VacancyStatus.APPLY_PREPARED,
             None,
-            "Режим DRY_RUN: всё готово, но отправка запрещена режимом",
+            "Пробный режим: всё готово, но отклик не отправлен",
         )
 
     return ApplyGuard(True)

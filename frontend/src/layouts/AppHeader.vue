@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
-import { Circle, Pause, Play, Square } from 'lucide-vue-next'
+import { Circle, CircleHelp, Pause, Play, Square } from 'lucide-vue-next'
 import { toMessage } from '@/api/client'
 import { useBotStatus, useBotControls } from '@/queries'
 import { useBrowserStatus } from '@/queries/browser'
@@ -26,6 +27,7 @@ const confirm = useConfirm()
 const route = useRoute()
 const router = useRouter()
 const ui = useUiStore()
+const modeHelp = ref(false)
 
 const { data: resumes, isPending: resumesPending } = useResumes()
 const { data: botStatus } = useBotStatus()
@@ -62,7 +64,11 @@ const indicators = computed(() => {
       on: botRunning
     },
     { label: 'HH', text: hh ? 'подключён' : 'нет сессии', on: hh },
-    { label: 'Модели', text: modelsReady ? 'готовы' : 'не настроены', on: modelsReady }
+    {
+      label: 'Модели',
+      text: modelsReady ? 'добавлены · проверьте подключение' : 'не настроены',
+      on: modelsReady
+    }
   ]
 })
 
@@ -106,10 +112,10 @@ function switchRuntime(value: RuntimeMode) {
     return
   }
   confirm.require({
-    header: 'Включить боевой режим',
+    header: 'Включить реальную отправку',
     message:
-      'В режиме LIVE отклики уходят работодателям по-настоящему. Перед этим стоит посмотреть несколько подготовленных писем.',
-    acceptLabel: 'Включить LIVE',
+      'В режиме реальной отправки бот сможет отправлять отклики работодателям. Сначала проверьте результаты пробного прогона и подготовленные письма.',
+    acceptLabel: 'Включить отправку',
     rejectLabel: 'Отмена',
     acceptProps: { severity: 'danger', size: 'small' },
     rejectProps: { severity: 'secondary', outlined: true, size: 'small' },
@@ -130,6 +136,7 @@ function switchRuntime(value: RuntimeMode) {
 
     <Select
       v-model="ui.resumeId"
+      data-tour="resume-picker"
       :options="resumeOptions"
       option-label="label"
       option-value="value"
@@ -140,6 +147,7 @@ function switchRuntime(value: RuntimeMode) {
     />
 
     <SelectButton
+      data-tour="bot-mode"
       :model-value="ui.botMode"
       :options="BOT_MODES"
       option-label="label"
@@ -151,6 +159,7 @@ function switchRuntime(value: RuntimeMode) {
     />
 
     <button
+      data-tour="runtime-mode"
       type="button"
       class="shrink-0 rounded-full px-3 py-1 text-[11.5px] font-semibold tracking-wide whitespace-nowrap transition-colors"
       :class="
@@ -160,7 +169,15 @@ function switchRuntime(value: RuntimeMode) {
       "
       @click="switchRuntime(ui.isLive ? 'DRY_RUN' : 'LIVE')"
     >
-      {{ ui.runtimeMode }}
+      {{ ui.isLive ? 'Реальная отправка' : 'Пробный режим' }}
+    </button>
+    <button
+      type="button"
+      class="-ml-1 flex size-6 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+      aria-label="Что означает пробный режим"
+      @click="modeHelp = true"
+    >
+      <CircleHelp class="size-4" />
     </button>
 
     <div class="ml-auto flex shrink-0 items-center gap-3">
@@ -180,6 +197,7 @@ function switchRuntime(value: RuntimeMode) {
       <div class="flex shrink-0 items-center gap-1.5">
         <Button
           v-if="!isBusy"
+          data-tour="launch"
           size="small"
           severity="secondary"
           outlined
@@ -220,4 +238,25 @@ function switchRuntime(value: RuntimeMode) {
       </div>
     </div>
   </header>
+  <Dialog
+    v-model:visible="modeHelp"
+    modal
+    header="Режим отправки"
+    class="w-[min(440px,calc(100vw-32px))]"
+  >
+    <div class="space-y-3 text-[13px] leading-relaxed text-slate-700">
+      <p>
+        <strong>Пробный режим</strong> — бот ищет и анализирует вакансии, готовит письмо и может
+        заполнить форму, но не отправляет отклик работодателю.
+      </p>
+      <p>
+        <strong>Реальная отправка</strong> — отклики могут уйти работодателям. Включайте её после
+        проверки результатов пробного прогона.
+      </p>
+      <p class="text-slate-500">
+        Ручной, полуавтоматический и автоматический режимы рядом определяют, сколько решений
+        принимает бот сам.
+      </p>
+    </div>
+  </Dialog>
 </template>

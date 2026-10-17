@@ -16,6 +16,7 @@
     "@tanstack/vue-query": "^5.101.4",
     "axios": "^1.19.0",
     "dayjs": "^1.11.23",
+    "driver.js": "^1.10.1",
     "lucide-vue-next": "^1.0.0",
     "pinia": "^4.0.3",
     "primeicons": "^8.0.0",

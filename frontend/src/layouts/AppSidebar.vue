@@ -11,6 +11,7 @@ import {
   Globe,
   Inbox,
   LayoutDashboard,
+  Map,
   ListChecks,
   Mail,
   Search,
@@ -28,7 +29,10 @@ const route = useRoute()
 const groups = [
   {
     title: null,
-    items: [{ to: '/dashboard', label: 'Дашборд', icon: LayoutDashboard }]
+    items: [
+      { to: '/welcome', label: 'С чего начать', icon: Map },
+      { to: '/dashboard', label: 'Дашборд', icon: LayoutDashboard }
+    ]
   },
   {
     title: 'Бот',
@@ -73,6 +77,7 @@ function isActive(to: string): boolean {
 
 <template>
   <aside
+    data-tour="navigation"
     class="flex shrink-0 flex-col border-r border-slate-200 bg-slate-50 transition-[width] duration-150"
     :class="ui.sidebarCollapsed ? 'w-[68px]' : 'w-60'"
   >
@@ -99,6 +104,17 @@ function isActive(to: string): boolean {
           :key="item.to"
           v-tooltip.right="ui.sidebarCollapsed ? item.label : undefined"
           :to="item.to"
+          :data-tour="
+            item.to === '/resumes'
+              ? 'resumes'
+              : item.to === '/search-profiles'
+                ? 'search'
+                : item.to === '/settings/providers'
+                  ? 'providers'
+                  : item.to === '/settings/browser'
+                    ? 'browser'
+                    : undefined
+          "
           class="mb-0.5 flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-[13.5px] no-underline transition-colors"
           :class="
             isActive(item.to)

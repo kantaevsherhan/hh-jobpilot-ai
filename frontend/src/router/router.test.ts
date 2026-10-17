@@ -8,6 +8,7 @@ const makeRouter = () =>
 
 /** Пункты бокового меню из §27 — у каждого должен быть рабочий экран. */
 const MENU = [
+  '/welcome',
   '/dashboard',
   '/vacancies',
   '/review',
@@ -47,11 +48,11 @@ describe('маршруты', () => {
   )
 
   // resolve() редиректы не выполняет — они срабатывают при навигации
-  it('корень уводит на дашборд', async () => {
+  it('корень открывает руководство первого запуска', async () => {
     const isolated = makeRouter()
     await isolated.push('/')
 
-    expect(isolated.currentRoute.value.path).toBe('/dashboard')
+    expect(isolated.currentRoute.value.path).toBe('/welcome')
   })
 
   it('несуществующий адрес не показывает пустой экран', async () => {

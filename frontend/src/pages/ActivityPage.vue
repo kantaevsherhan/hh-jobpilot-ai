@@ -6,7 +6,13 @@ import { fetchRunEvents, useBotStatus, useRuns } from '@/queries'
 import type { RunEvent } from '@/api/bot'
 import EmptyState from '@/components/EmptyState.vue'
 import { useUiStore } from '@/stores/ui'
-import { formatDateTime, formatDuration, formatTime } from '@/utils/format'
+import {
+  formatBotMode,
+  formatDateTime,
+  formatDuration,
+  formatRuntimeMode,
+  formatTime
+} from '@/utils/format'
 
 const ui = useUiStore()
 const { data: status } = useBotStatus()
@@ -101,7 +107,7 @@ const TONES: Record<string, string> = {
           {{ formatDuration(activeRun.started_at, activeRun.ended_at) }}
         </span>
         <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11.5px] text-slate-700">
-          {{ activeRun.mode }} · {{ activeRun.runtime_mode }}
+          {{ formatBotMode(activeRun.mode) }} · {{ formatRuntimeMode(activeRun.runtime_mode) }}
         </span>
         <span class="ml-auto text-[12.5px] text-slate-600">{{ activeRun.status }}</span>
       </div>
