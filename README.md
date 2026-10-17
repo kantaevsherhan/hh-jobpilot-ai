@@ -8,7 +8,7 @@
 написания сопроводительных писем и отправки откликов.
 
 Работает целиком на своей машине: база — SQLite, модель — Ollama, браузер —
-видимый Chromium. Наружу уходят только запросы к hh.kz и, если вы сами
+видимый браузер Chromium (на Windows — установленный Chrome или Edge). Наружу уходят только запросы к hh.kz и, если вы сами
 настроите внешнего провайдера, к его API.
 
 Правила разработки — в [CLAUDE.md](CLAUDE.md).
@@ -64,6 +64,10 @@ Push-Location backend
 .\.venv\Scripts\python.exe -m alembic upgrade head
 Pop-Location
 ```
+
+Для входа в HH на Windows нужен установленный Google Chrome или Microsoft Edge.
+Приложение использует отдельный профиль в `data/browser/default`.
+Если ни один из них не установлен, используется Chromium из Playwright.
 
 Запустите Ollama (`ollama serve`) и модель (`ollama pull qwen3:4b-instruct`).
 В двух отдельных окнах PowerShell запустите бэкенд и фронтенд:

@@ -5,6 +5,7 @@
 """
 
 import asyncio
+import os
 from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -17,6 +18,25 @@ if TYPE_CHECKING:
     from playwright.async_api import BrowserContext, Page, Playwright
 
 log = get_logger(__name__)
+
+
+def _windows_browser_channel() -> str | None:
+    """На Windows предпочитать установленный Chrome/Edge браузеру из Playwright."""
+    if os.name != "nt":
+        return None
+
+    program_files = [
+        Path(value)
+        for key in ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")
+        if (value := os.environ.get(key))
+    ]
+    for channel, relative_path in (
+        ("chrome", Path("Google/Chrome/Application/chrome.exe")),
+        ("msedge", Path("Microsoft/Edge/Application/msedge.exe")),
+    ):
+        if any((root / relative_path).is_file() for root in program_files):
+            return channel
+    return None
 
 
 class BrowserState(StrEnum):
@@ -68,10 +88,12 @@ class BrowserManager:
 
                 self._playwright = await async_playwright().start()
                 self.user_data_dir.mkdir(parents=True, exist_ok=True)
+                channel = _windows_browser_channel()
                 # headless запрещён: пользователь должен видеть, что происходит,
                 # и иметь возможность вмешаться (§29)
                 self._context = await self._playwright.chromium.launch_persistent_context(
                     user_data_dir=str(self.user_data_dir),
+                    channel=channel,
                     headless=False,
                     viewport={"width": 1440, "height": 900},
                     args=["--disable-blink-features=AutomationControlled"],
@@ -85,7 +107,8 @@ class BrowserManager:
                 await self._cleanup()
                 raise AppError(
                     "BROWSER_NOT_STARTED",
-                    "Не удалось запустить Chromium. Выполнен ли playwright install chromium?",
+                    "Не удалось открыть браузер. На Windows проверьте установку Chrome или Edge. "
+                    "На других системах выполните playwright install chromium.",
                     technical_details=str(exc),
                 ) from exc
 

@@ -12,7 +12,7 @@ export const browserStatusSchema = z.object({
 export type BrowserStatus = z.infer<typeof browserStatusSchema>
 
 async function post(path: string): Promise<BrowserStatus> {
-  // Запуск Chromium с профилем занимает несколько секунд
+  // Запуск браузера с профилем занимает несколько секунд
   const { data } = await api.post<unknown>(`/browser/${path}`, undefined, { timeout: 120_000 })
   return browserStatusSchema.parse(data)
 }
