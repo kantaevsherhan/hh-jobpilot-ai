@@ -1,0 +1,6 @@
+# Prettier и ruff ждут LF; без этого git на Windows с autocrlf ломает проверку формата
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.png binary
+*.woff2 binary
