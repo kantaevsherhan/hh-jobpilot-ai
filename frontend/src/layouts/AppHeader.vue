@@ -161,7 +161,7 @@ function switchRuntime(value: RuntimeMode) {
     <button
       data-tour="runtime-mode"
       type="button"
-      class="shrink-0 rounded-full px-3 py-1 text-[11.5px] font-semibold tracking-wide whitespace-nowrap transition-colors"
+      class="shrink-0 rounded-full px-2.5 py-0.5 text-[10.5px] font-medium whitespace-nowrap transition-colors"
       :class="
         ui.isLive
           ? 'bg-red-600 text-white hover:bg-red-700'
@@ -173,11 +173,11 @@ function switchRuntime(value: RuntimeMode) {
     </button>
     <button
       type="button"
-      class="-ml-1 flex size-6 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+      class="-ml-1.5 flex size-5 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-800"
       aria-label="Что означает пробный режим"
       @click="modeHelp = true"
     >
-      <CircleHelp class="size-4" />
+      <CircleHelp class="size-3.5" />
     </button>
 
     <div class="ml-auto flex shrink-0 items-center gap-3">
