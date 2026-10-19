@@ -1,10 +1,12 @@
 import { z } from 'zod'
 import { api } from '@/api/client'
 import {
+  cliToolSchema,
   promptSchema,
   providerSchema,
   providerTestSchema,
   routingSchema,
+  type CliTool,
   type Prompt,
   type Provider,
   type ProviderInput,
@@ -36,6 +38,11 @@ export async function deleteProvider(id: number): Promise<void> {
 export async function testProvider(id: number): Promise<ProviderTest> {
   const { data } = await api.post<unknown>(`/providers/${String(id)}/test`)
   return providerTestSchema.parse(data)
+}
+
+export async function fetchCliCatalog(): Promise<CliTool[]> {
+  const { data } = await api.get<unknown>('/providers/cli/catalog')
+  return z.array(cliToolSchema).parse(data)
 }
 
 export async function fetchRouting(): Promise<Record<string, number>> {

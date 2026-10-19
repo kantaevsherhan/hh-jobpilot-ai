@@ -13,6 +13,7 @@ import { CheckCircle2, Pencil, Plug, Plus, Trash2, XCircle } from 'lucide-vue-ne
 import { testProvider } from '@/api/llm'
 import { toMessage } from '@/api/client'
 import {
+  useCliCatalog,
   useCreateProvider,
   useDeleteProvider,
   usePatchProvider,
@@ -49,12 +50,63 @@ const form = reactive({
   base_url: '',
   api_key: '',
   command: 'claude',
+  effort: '',
+  cli_path: '',
   temperature: 0.3,
   timeout_sec: 300
 })
 
 const needsKey = computed(() => ['anthropic', 'openai', 'openrouter'].includes(form.type))
 const isCli = computed(() => form.type === 'cli')
+
+const { data: cliCatalog } = useCliCatalog(isCli)
+const cliTool = computed(() => cliCatalog.value?.find((tool) => tool.command === form.command))
+const cliToolOptions = computed(() =>
+  (cliCatalog.value ?? []).map((tool) => ({
+    value: tool.command,
+    label: tool.path ? tool.label : `${tool.label} — не найден`
+  }))
+)
+const cliModelOptions = computed(() =>
+  (cliTool.value?.models ?? []).map((model) => ({
+    value: model.id,
+    label: model.id ? `${model.label} · ${model.id}` : model.label,
+    description: model.description
+  }))
+)
+// У Codex уровни свои у каждой модели, у Claude — общие на весь CLI
+const cliEffortOptions = computed(() => {
+  const model = cliTool.value?.models.find((m) => m.id === form.model)
+  const efforts = model?.efforts.length ? model.efforts : (cliTool.value?.efforts ?? [])
+  return [
+    { value: '', label: 'По умолчанию' },
+    ...efforts.map((effort) => ({ value: effort, label: effort }))
+  ]
+})
+
+function onCliCommandChange() {
+  form.model = ''
+  form.effort = ''
+  if (!form.name.trim() || ['Claude CLI', 'Codex CLI'].includes(form.name)) {
+    form.name = form.command === 'codex' ? 'Codex CLI' : 'Claude CLI'
+  }
+}
+
+function cliExtra(): Record<string, unknown> {
+  const extra: Record<string, unknown> = {
+    ...(editingProvider.value?.extra_json ?? {}),
+    command: form.command.trim()
+  }
+  // Пустое значение убирается целиком: иначе в базе останется старый уровень или путь
+  for (const [key, value] of [
+    ['effort', form.effort],
+    ['path', form.cli_path.trim()]
+  ] as const) {
+    if (value) extra[key] = value
+    else delete extra[key]
+  }
+  return extra
+}
 
 const testResults = ref<Record<number, ProviderTest | 'running'>>({})
 
@@ -71,10 +123,17 @@ function openDialog() {
     base_url: '',
     api_key: '',
     command: 'claude',
+    effort: '',
+    cli_path: '',
     temperature: 0.3,
     timeout_sec: 300
   })
   dialog.value = true
+}
+
+function extraString(provider: Provider, key: string): string {
+  const value = provider.extra_json[key]
+  return typeof value === 'string' ? value : ''
 }
 
 function openEdit(provider: Provider) {
@@ -85,7 +144,9 @@ function openEdit(provider: Provider) {
     model: provider.model ?? '',
     base_url: provider.base_url ?? '',
     api_key: '',
-    command: String(provider.extra_json.command ?? 'claude'),
+    command: extraString(provider, 'command') || 'claude',
+    effort: extraString(provider, 'effort'),
+    cli_path: extraString(provider, 'path'),
     temperature: provider.temperature,
     timeout_sec: provider.timeout_sec
   })
@@ -101,9 +162,7 @@ function submit() {
     base_url: form.base_url.trim() || null,
     temperature: form.temperature,
     timeout_sec: form.timeout_sec,
-    extra_json: isCli.value
-      ? { ...(editingProvider.value?.extra_json ?? {}), command: form.command.trim() }
-      : (editingProvider.value?.extra_json ?? {})
+    extra_json: isCli.value ? cliExtra() : (editingProvider.value?.extra_json ?? {})
   }
   const key = form.api_key.trim()
   if (key || !editingProvider.value) payload.api_key = key || null
@@ -239,7 +298,14 @@ const providerOptions = computed(() =>
               </div>
               <p class="mt-0.5 text-[12px] text-slate-500">
                 <span v-if="provider.api_key_masked">ключ {{ provider.api_key_masked }} · </span>
-                таймаут {{ provider.timeout_sec }} сек · temperature {{ provider.temperature }}
+                <template v-if="provider.type === 'cli'">
+                  {{ extraString(provider, 'command') || 'claude' }} · effort
+                  {{ extraString(provider, 'effort') || 'по умолчанию' }} · таймаут
+                  {{ provider.timeout_sec }} сек
+                </template>
+                <template v-else>
+                  таймаут {{ provider.timeout_sec }} сек · temperature {{ provider.temperature }}
+                </template>
               </p>
             </div>
 
@@ -364,13 +430,78 @@ const providerOptions = computed(() =>
             class="w-full"
           />
         </div>
-        <div v-if="isCli">
-          <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Команда</label>
-          <InputText v-model="form.command" fluid class="w-full" placeholder="claude или codex" />
-          <p class="mt-1 text-[12px] text-slate-500">
-            Неинтерактивный режим CLI: claude -p и codex exec. Биллится по подписке.
-          </p>
-        </div>
+        <template v-if="isCli">
+          <div>
+            <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">CLI</label>
+            <Select
+              v-model="form.command"
+              :options="cliToolOptions"
+              option-label="label"
+              option-value="value"
+              :loading="!cliCatalog"
+              fluid
+              class="w-full"
+              @update:model-value="onCliCommandChange"
+            />
+            <p class="mt-1 text-[12px] text-slate-500">
+              <template v-if="cliTool?.path"
+                >Найден: <span class="break-all">{{ cliTool.path }}</span
+                >.
+              </template>
+              <template v-else-if="cliTool">
+                Не найден — установите CLI или укажите путь ниже.
+              </template>
+              Работает по вашей подписке, без API-ключа. Вход выполняется в самом CLI один раз:
+              <code>{{ form.command }}</code> в терминале.
+            </p>
+          </div>
+          <div>
+            <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Модель</label>
+            <Select
+              v-model="form.model"
+              :options="cliModelOptions"
+              option-label="label"
+              option-value="value"
+              editable
+              fluid
+              class="w-full"
+              placeholder="По умолчанию CLI"
+            >
+              <template #option="{ option }">
+                <div>
+                  <p class="text-[13px]">{{ option.label }}</p>
+                  <p v-if="option.description" class="text-[11.5px] text-slate-500">
+                    {{ option.description }}
+                  </p>
+                </div>
+              </template>
+            </Select>
+            <p class="mt-1 text-[12px] text-slate-500">
+              Можно выбрать из списка или вписать точное имя модели.
+            </p>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600"
+                >Усилие (effort)</label
+              >
+              <Select
+                v-model="form.effort"
+                :options="cliEffortOptions"
+                option-label="label"
+                option-value="value"
+                fluid
+                class="w-full"
+              />
+            </div>
+            <div>
+              <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600"
+                >Путь к CLI</label
+              >
+              <InputText v-model="form.cli_path" fluid class="w-full" placeholder="найдётся сам" />
+            </div>
+          </div>
+        </template>
         <div v-else>
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Модель</label>
           <InputText v-model="form.model" fluid class="w-full" placeholder="qwen3:4b-instruct" />
@@ -401,7 +532,8 @@ const providerOptions = computed(() =>
           />
         </div>
         <div class="grid grid-cols-2 gap-3">
-          <div>
+          <!-- CLI не принимает temperature, поле там ничего бы не меняло -->
+          <div v-if="!isCli">
             <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Temperature</label>
             <InputNumber
               v-model="form.temperature"

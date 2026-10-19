@@ -1,7 +1,9 @@
+import { type Ref } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import {
   createProvider,
   deleteProvider,
+  fetchCliCatalog,
   fetchPrompts,
   fetchProviders,
   fetchRouting,
@@ -18,6 +20,14 @@ const PROMPTS = ['prompts'] as const
 export const useProviders = () => useQuery({ queryKey: PROVIDERS, queryFn: fetchProviders })
 export const useRouting = () =>
   useQuery({ queryKey: [...PROVIDERS, 'routing'], queryFn: fetchRouting })
+// staleTime: Infinity — список установленных CLI за время работы формы не меняется
+export const useCliCatalog = (enabled: Ref<boolean>) =>
+  useQuery({
+    queryKey: [...PROVIDERS, 'cli-catalog'],
+    queryFn: fetchCliCatalog,
+    enabled,
+    staleTime: Infinity
+  })
 export const usePrompts = () => useQuery({ queryKey: PROMPTS, queryFn: fetchPrompts })
 
 function useInvalidating<TArgs, TResult>(

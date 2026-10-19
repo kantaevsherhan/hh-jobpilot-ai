@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.api.deps import Session
 from app.core.enums import PromptKey, ProviderType
 from app.llm import router as llm_router
+from app.llm.providers import cli as cli_provider
 from app.storage.models import LLMProvider
 from app.storage.repositories import crud
 from app.storage.repositories import settings as settings_repo
@@ -95,6 +96,11 @@ async def delete_provider(provider_id: int, session: Session) -> None:
     if cleaned != routing:
         await settings_repo.put(session, "llm_routing", cleaned)
     await crud.remove(session, row)
+
+
+@router.get("/cli/catalog", summary="Установленные CLI и их модели")
+async def cli_catalog() -> list[dict[str, Any]]:
+    return [tool.as_dict() for tool in cli_provider.catalog()]
 
 
 @router.post("/{provider_id}/test", summary="Тестовый вызов провайдера")

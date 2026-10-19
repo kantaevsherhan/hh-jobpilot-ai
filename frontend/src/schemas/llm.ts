@@ -34,6 +34,23 @@ export const promptSchema = z.object({
   is_default: z.boolean()
 })
 
+export const cliToolSchema = z.object({
+  command: z.string(),
+  label: z.string(),
+  path: z.string().nullable(),
+  efforts: z.array(z.string()),
+  models: z.array(
+    z.object({
+      id: z.string(),
+      label: z.string(),
+      description: z.string(),
+      efforts: z.array(z.string()),
+      default_effort: z.string().nullable()
+    })
+  )
+})
+
+export type CliTool = z.infer<typeof cliToolSchema>
 export type Provider = z.infer<typeof providerSchema>
 export type ProviderTest = z.infer<typeof providerTestSchema>
 export type Prompt = z.infer<typeof promptSchema>
