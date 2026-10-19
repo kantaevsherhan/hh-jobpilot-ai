@@ -12,6 +12,8 @@ import { useToast } from 'primevue/usetoast'
 import { CheckCircle2, Pencil, Plug, Plus, Trash2, XCircle } from 'lucide-vue-next'
 import { testProvider } from '@/api/llm'
 import { toMessage } from '@/api/client'
+import FieldError from '@/components/FieldError.vue'
+import { useFormErrors } from '@/composables/useFormErrors'
 import {
   useCliCatalog,
   useCreateProvider,
@@ -108,6 +110,20 @@ function cliExtra(): Record<string, unknown> {
   return extra
 }
 
+const {
+  errors,
+  validate,
+  reset: resetErrors
+} = useFormErrors(() => ({
+  name: form.name.trim() ? undefined : 'Укажите название провайдера',
+  // У CLI модель необязательна: без неё берётся модель из настроек самого CLI
+  model: isCli.value || form.model.trim() ? undefined : 'Укажите модель',
+  api_key:
+    needsKey.value && !editingProvider.value?.api_key_masked && !form.api_key.trim()
+      ? 'Укажите API-ключ'
+      : undefined
+}))
+
 const testResults = ref<Record<number, ProviderTest | 'running'>>({})
 
 function fail(error: unknown) {
@@ -128,6 +144,7 @@ function openDialog() {
     temperature: 0.3,
     timeout_sec: 300
   })
+  resetErrors()
   dialog.value = true
 }
 
@@ -150,11 +167,12 @@ function openEdit(provider: Provider) {
     temperature: provider.temperature,
     timeout_sec: provider.timeout_sec
   })
+  resetErrors()
   dialog.value = true
 }
 
 function submit() {
-  if (!form.name.trim()) return
+  if (!validate()) return
   const payload: ProviderInput = {
     name: form.name.trim(),
     type: form.type,
@@ -416,7 +434,14 @@ const providerOptions = computed(() =>
       <div class="space-y-3">
         <div>
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Название</label>
-          <InputText v-model="form.name" fluid class="w-full" placeholder="Локальная qwen3" />
+          <InputText
+            v-model="form.name"
+            :invalid="!!errors.name"
+            fluid
+            class="w-full"
+            placeholder="Локальная qwen3"
+          />
+          <FieldError :message="errors.name" />
         </div>
         <div>
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Тип</label>
@@ -504,7 +529,14 @@ const providerOptions = computed(() =>
         </template>
         <div v-else>
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Модель</label>
-          <InputText v-model="form.model" fluid class="w-full" placeholder="qwen3:4b-instruct" />
+          <InputText
+            v-model="form.model"
+            :invalid="!!errors.model"
+            fluid
+            class="w-full"
+            placeholder="qwen3:4b-instruct"
+          />
+          <FieldError :message="errors.model" />
         </div>
         <div v-if="needsKey">
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">API-ключ</label>
@@ -512,9 +544,11 @@ const providerOptions = computed(() =>
             v-model="form.api_key"
             type="password"
             autocomplete="new-password"
+            :invalid="!!errors.api_key"
             fluid
             class="w-full"
           />
+          <FieldError :message="errors.api_key" />
           <p v-if="editingProvider?.api_key_masked" class="mt-1 text-[12px] text-slate-500">
             Сейчас сохранён ключ {{ editingProvider.api_key_masked }}. Оставьте поле пустым, чтобы
             сохранить его; введите новый ключ для замены.

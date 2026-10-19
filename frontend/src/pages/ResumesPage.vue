@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Column from 'primevue/column'
@@ -13,6 +13,8 @@ import { useToast } from 'primevue/usetoast'
 import { Archive, Copy, ExternalLink, Pencil, Plus, Trash2 } from 'lucide-vue-next'
 import dayjs from 'dayjs'
 import { toMessage } from '@/api/client'
+import FieldError from '@/components/FieldError.vue'
+import { useFormErrors } from '@/composables/useFormErrors'
 import {
   useArchiveResume,
   useCreateResume,
@@ -39,14 +41,26 @@ const duplicate = useDuplicateResume()
 const archive = useArchiveResume()
 const remove = useDeleteResume()
 
-const canCreate = computed(() => newName.value.trim().length > 0)
+const {
+  errors,
+  validate,
+  reset: resetErrors
+} = useFormErrors(() => ({
+  name: newName.value.trim() ? undefined : 'Укажите название резюме'
+}))
 
 function fail(error: unknown) {
   toast.add({ severity: 'error', summary: 'Не получилось', detail: toMessage(error), life: 6000 })
 }
 
+function openCreate() {
+  newName.value = ''
+  resetErrors()
+  createDialog.value = true
+}
+
 function submitCreate() {
-  if (!canCreate.value) return
+  if (!validate()) return
   create.mutate(
     { name: newName.value.trim() },
     {
@@ -113,7 +127,7 @@ const dateFormat = (value: string) => dayjs(value).format('DD.MM.YYYY')
           <ToggleSwitch v-model="includeArchived" />
           Показывать архив
         </label>
-        <Button size="small" label="Новое резюме" @click="createDialog = true">
+        <Button size="small" label="Новое резюме" @click="openCreate">
           <template #icon><Plus class="mr-1.5 size-4" /></template>
         </Button>
       </div>
@@ -245,8 +259,10 @@ const dateFormat = (value: string) => dayjs(value).format('DD.MM.YYYY')
         fluid
         class="w-full"
         placeholder="Backend Node.js"
+        :invalid="!!errors.name"
         @keyup.enter="submitCreate"
       />
+      <FieldError :message="errors.name" />
       <p class="mt-1.5 text-[12px] text-slate-500">
         Название видно только вам — по нему выбирается активное резюме в шапке.
       </p>
@@ -261,7 +277,6 @@ const dateFormat = (value: string) => dayjs(value).format('DD.MM.YYYY')
         <Button
           label="Создать"
           size="small"
-          :disabled="!canCreate"
           :loading="create.isPending.value"
           @click="submitCreate"
         />

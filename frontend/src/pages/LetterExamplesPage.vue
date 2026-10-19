@@ -11,6 +11,8 @@ import { Mail, Pencil, Plus, Trash2 } from 'lucide-vue-next'
 import { toMessage } from '@/api/client'
 import { createLetterExample, deleteLetterExample, patchLetterExample } from '@/api/catalogs'
 import EmptyState from '@/components/EmptyState.vue'
+import FieldError from '@/components/FieldError.vue'
+import { useFormErrors } from '@/composables/useFormErrors'
 import { useLetterExamples, useMutate } from '@/queries'
 import { useUiStore } from '@/stores/ui'
 import type { LetterExample } from '@/api/catalogs'
@@ -25,6 +27,11 @@ const { data: examples, isPending } = useLetterExamples(() => ui.resumeId)
 const dialog = ref(false)
 const editing = ref<LetterExample | null>(null)
 const form = reactive({ name: '', category: 'Общий', tone: 'Нейтральный', content: '' })
+
+const { errors, validate, reset } = useFormErrors(() => ({
+  name: form.name.trim() ? undefined : 'Укажите название',
+  content: form.content.trim() ? undefined : 'Вставьте текст письма'
+}))
 
 function fail(error: unknown) {
   toast.add({ severity: 'error', summary: 'Не получилось', detail: toMessage(error), life: 6000 })
@@ -41,6 +48,7 @@ const remove = useMutate(['letter-examples'], deleteLetterExample)
 function openNew() {
   editing.value = null
   Object.assign(form, { name: '', category: 'Общий', tone: 'Нейтральный', content: '' })
+  reset()
   dialog.value = true
 }
 
@@ -52,11 +60,12 @@ function openEdit(example: LetterExample) {
     tone: example.tone,
     content: example.content
   })
+  reset()
   dialog.value = true
 }
 
 function submit() {
-  if (!form.name.trim() || !form.content.trim()) return
+  if (!validate()) return
   const payload = { ...form, name: form.name.trim(), content: form.content.trim() }
   const done = {
     onSuccess: () => {
@@ -161,7 +170,14 @@ function submit() {
         <div class="grid grid-cols-3 gap-3">
           <div class="col-span-1">
             <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Название</label>
-            <InputText v-model="form.name" fluid class="w-full" size="small" />
+            <InputText
+              v-model="form.name"
+              :invalid="!!errors.name"
+              fluid
+              class="w-full"
+              size="small"
+            />
+            <FieldError :message="errors.name" />
           </div>
           <div>
             <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Категория</label>
@@ -180,17 +196,18 @@ function submit() {
         </div>
         <div>
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Текст письма</label>
-          <Textarea v-model="form.content" class="w-full text-[13px] leading-relaxed" rows="14" />
+          <Textarea
+            v-model="form.content"
+            :invalid="!!errors.content"
+            class="w-full text-[13px] leading-relaxed"
+            rows="14"
+          />
+          <FieldError :message="errors.content" />
         </div>
       </div>
       <template #footer>
         <Button label="Отмена" severity="secondary" outlined size="small" @click="dialog = false" />
-        <Button
-          label="Сохранить"
-          size="small"
-          :disabled="!form.name.trim() || !form.content.trim()"
-          @click="submit"
-        />
+        <Button label="Сохранить" size="small" @click="submit" />
       </template>
     </Dialog>
   </div>

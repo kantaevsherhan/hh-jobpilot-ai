@@ -11,6 +11,8 @@ import { useToast } from 'primevue/usetoast'
 import { ArrowLeft, ExternalLink, Plus, Save, Sparkles, X } from 'lucide-vue-next'
 import dayjs from 'dayjs'
 import { toMessage } from '@/api/client'
+import FieldError from '@/components/FieldError.vue'
+import { useFormErrors } from '@/composables/useFormErrors'
 import { usePatchResume, useRebuildDigest, useResume, useSaveSkills } from '@/queries/resumes'
 import type { Skill } from '@/schemas/resume'
 
@@ -68,6 +70,13 @@ const factsCount = computed(
 // одновременно отклонена и отправлена — такое сохранять нельзя
 const thresholdsValid = computed(() => form.value.auto_apply_score >= form.value.min_score)
 
+const { errors, validate } = useFormErrors(() => ({
+  name: form.value.name.trim() ? undefined : 'Укажите название резюме',
+  thresholds: thresholdsValid.value
+    ? undefined
+    : 'Порог автоотклика не может быть ниже порога отбора'
+}))
+
 function toggleLanguage(code: string) {
   const list = form.value.letter_languages
   form.value.letter_languages = list.includes(code)
@@ -91,7 +100,7 @@ function toggleCore(name: string) {
 }
 
 function save() {
-  if (!thresholdsValid.value) return
+  if (!validate()) return
   patch.mutate(
     {
       id: resumeId.value,
@@ -115,6 +124,15 @@ function save() {
 }
 
 function rebuild() {
+  if (!form.value.raw_text.trim()) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Выжимку не из чего собрать',
+      detail: 'Сначала вставьте текст резюме и сохраните его',
+      life: 5000
+    })
+    return
+  }
   rebuildDigest.mutate(resumeId.value, {
     onSuccess: () => {
       toast.add({ severity: 'success', summary: 'Выжимка собрана', life: 3000 })
@@ -155,7 +173,6 @@ function onFail(error: unknown) {
         class="ml-auto"
         size="small"
         label="Сохранить"
-        :disabled="!thresholdsValid"
         :loading="patch.isPending.value || saveSkills.isPending.value"
         @click="save"
       >
@@ -167,7 +184,8 @@ function onFail(error: unknown) {
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Название</label>
-          <InputText v-model="form.name" fluid class="w-full" />
+          <InputText v-model="form.name" :invalid="!!errors.name" fluid class="w-full" />
+          <FieldError :message="errors.name" />
         </div>
         <div>
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600"
@@ -317,7 +335,6 @@ function onFail(error: unknown) {
                 severity="secondary"
                 outlined
                 :label="resume?.digest_json ? 'Пересобрать' : 'Собрать'"
-                :disabled="form.raw_text.trim().length === 0"
                 :loading="rebuildDigest.isPending.value"
                 @click="rebuild"
               />

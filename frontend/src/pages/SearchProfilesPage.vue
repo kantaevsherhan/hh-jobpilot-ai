@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { reactive, ref } from 'vue'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import InputNumber from 'primevue/inputnumber'
@@ -13,6 +13,8 @@ import { Pencil, Play, Plus, Search, Trash2 } from 'lucide-vue-next'
 import { toMessage } from '@/api/client'
 import { createSearchProfile, deleteSearchProfile, patchSearchProfile } from '@/api/catalogs'
 import EmptyState from '@/components/EmptyState.vue'
+import FieldError from '@/components/FieldError.vue'
+import { useFormErrors } from '@/composables/useFormErrors'
 import { useBotControls, useMutate, useSearchProfiles } from '@/queries'
 import { useUiStore } from '@/stores/ui'
 import type { SearchProfile } from '@/api/catalogs'
@@ -102,6 +104,7 @@ function openNew() {
     enabled: true,
     priority: 1
   })
+  resetErrors()
   dialog.value = true
 }
 
@@ -126,6 +129,7 @@ function openEdit(profile: SearchProfile) {
     enabled: profile.enabled,
     priority: profile.priority
   })
+  resetErrors()
   dialog.value = true
 }
 
@@ -143,10 +147,25 @@ function removeFrom(list: 'queries' | 'include_keywords' | 'exclude_keywords', v
   form[list] = form[list].filter((item) => item !== value)
 }
 
-const canSave = computed(() => form.name.trim().length > 0 && form.queries.length > 0)
+const {
+  errors,
+  validate,
+  reset: resetErrors
+} = useFormErrors(() => ({
+  name: form.name.trim() ? undefined : 'Укажите название профиля',
+  queries: form.queries.length
+    ? undefined
+    : 'Добавьте хотя бы один поисковый запрос: впишите его и нажмите Enter',
+  resume:
+    ui.resumeId === null ? 'Выберите резюме в шапке — профиль привязывается к нему' : undefined
+}))
 
 function submit() {
-  if (!canSave.value || ui.resumeId === null) return
+  // Вписанное, но не добавленное по Enter — частая причина «пустого» профиля
+  addTo('queries', 'queryDraft')
+  addTo('include_keywords', 'includeDraft')
+  addTo('exclude_keywords', 'excludeDraft')
+  if (!validate() || ui.resumeId === null) return
   const payload = {
     name: form.name.trim(),
     queries: form.queries,
@@ -335,7 +354,14 @@ const areaLabel = (codes: unknown[]) =>
       <div class="space-y-3">
         <div>
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Название</label>
-          <InputText v-model="form.name" fluid class="w-full" placeholder="Backend Remote" />
+          <InputText
+            v-model="form.name"
+            :invalid="!!errors.name"
+            fluid
+            class="w-full"
+            placeholder="Backend Remote"
+          />
+          <FieldError :message="errors.name" />
         </div>
 
         <div>
@@ -360,12 +386,15 @@ const areaLabel = (codes: unknown[]) =>
           </div>
           <InputText
             v-model="form.queryDraft"
+            :invalid="!!errors.queries"
             size="small"
             fluid
             class="w-full"
             placeholder="Node.js Developer, затем Enter"
             @keyup.enter="addTo('queries', 'queryDraft')"
           />
+          <FieldError :message="errors.queries" />
+          <FieldError :message="errors.resume" />
         </div>
 
         <div class="grid grid-cols-2 gap-3">
@@ -512,7 +541,6 @@ const areaLabel = (codes: unknown[]) =>
         <Button
           label="Сохранить"
           size="small"
-          :disabled="!canSave"
           :loading="create.isPending.value || patch.isPending.value"
           @click="submit"
         />

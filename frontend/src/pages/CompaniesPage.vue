@@ -15,6 +15,8 @@ import {
   testCompanyRules
 } from '@/api/catalogs'
 import EmptyState from '@/components/EmptyState.vue'
+import FieldError from '@/components/FieldError.vue'
+import { useFormErrors } from '@/composables/useFormErrors'
 import { useCompanyRules, useDictionaries, useMutate } from '@/queries'
 import { useUiStore } from '@/stores/ui'
 import type { CompanyRule } from '@/api/catalogs'
@@ -57,7 +59,20 @@ const patch = useMutate(
 )
 const remove = useMutate(['company-rules'], deleteCompanyRule)
 
+const {
+  errors,
+  validate,
+  reset: resetErrors
+} = useFormErrors(() => ({
+  value: form.value.trim() ? undefined : 'Укажите название компании или его часть',
+  resume:
+    form.forAllResumes || editingRule.value || ui.resumeId !== null
+      ? undefined
+      : 'Выберите резюме в шапке или включите «Для всех резюме»'
+}))
+
 function resetForm() {
+  resetErrors()
   editingRule.value = null
   Object.assign(form, {
     value: '',
@@ -72,6 +87,7 @@ function resetForm() {
 }
 
 function openEdit(rule: CompanyRule) {
+  resetErrors()
   editingRule.value = rule
   Object.assign(form, {
     value: rule.value,
@@ -86,7 +102,7 @@ function openEdit(rule: CompanyRule) {
 }
 
 function submit() {
-  if (!form.value.trim()) return
+  if (!validate()) return
   const payload = {
     value: form.value.trim(),
     match_type: form.match_type,
@@ -200,12 +216,14 @@ function ruleLine(rule: CompanyRule): string {
         <div class="space-y-2.5">
           <InputText
             v-model="form.value"
+            :invalid="!!errors.value"
             size="small"
             fluid
             class="w-full"
             placeholder="Название или часть"
             @keyup.enter="submit"
           />
+          <FieldError :message="errors.value" />
           <Select
             v-model="form.match_type"
             :options="MATCH_TYPES"
@@ -252,6 +270,7 @@ function ruleLine(rule: CompanyRule): string {
             <ToggleSwitch v-model="form.forAllResumes" :disabled="editingRule !== null" />
             Для всех резюме
           </label>
+          <FieldError :message="errors.resume" />
           <p v-if="editingRule" class="text-[12px] text-slate-500">
             Область действия правила после создания не меняется.
           </p>
@@ -259,7 +278,6 @@ function ruleLine(rule: CompanyRule): string {
             class="w-full"
             size="small"
             :label="editingRule ? 'Сохранить' : 'Добавить'"
-            :disabled="!form.value.trim()"
             :loading="create.isPending.value || patch.isPending.value"
             @click="submit"
           >

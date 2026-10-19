@@ -7,6 +7,7 @@ import Slider from 'primevue/slider'
 import { useToast } from 'primevue/usetoast'
 import { RotateCcw, Save } from 'lucide-vue-next'
 import { toMessage } from '@/api/client'
+import { useFormErrors } from '@/composables/useFormErrors'
 import { usePatchSettings, useSettings } from '@/queries'
 import { deepCopy } from '@/utils/clone'
 import type { AppSettings } from '@/api/settings'
@@ -65,6 +66,18 @@ const invalidRanges = computed(() =>
     .map(([key]) => RANGE_LABELS[key] ?? key)
 )
 
+const longPauseInvalid = computed(() => {
+  const [min, max] = delays.value.long_pause_range
+  return min <= 0 || max <= 0 || min > max
+})
+
+const { validate } = useFormErrors(() => ({
+  ranges: invalidRanges.value.length
+    ? `Проверьте диапазоны: ${invalidRanges.value.join(', ')}`
+    : undefined,
+  longPause: longPauseInvalid.value ? 'Проверьте диапазон длинной паузы' : undefined
+}))
+
 /** Та же формула, что в бэкенде: показать, во что превратятся настройки. */
 const estimate = computed(() => {
   const [minBetween, maxBetween] = delays.value.ranges.between_vacancies
@@ -80,7 +93,7 @@ const estimate = computed(() => {
 })
 
 function save() {
-  if (invalidRanges.value.length) return
+  if (!validate()) return
   patch.mutate(
     { delays: delays.value, limits: limits.value },
     {
@@ -186,9 +199,14 @@ function reset() {
         <InputNumber v-model="delays.long_pause_range[1]" size="small" fluid class="w-full" />
       </div>
 
-      <Message v-if="invalidRanges.length" severity="error" size="small" class="mt-3">
+      <Message
+        v-if="invalidRanges.length || longPauseInvalid"
+        severity="error"
+        size="small"
+        class="mt-3"
+      >
         «От» не может быть больше «до», и обе границы должны быть больше нуля:
-        {{ invalidRanges.join(', ') }}
+        {{ [...invalidRanges, ...(longPauseInvalid ? ['длинная пауза'] : [])].join(', ') }}
       </Message>
 
       <p v-else class="mt-3 text-[12.5px] text-slate-500">
@@ -243,7 +261,6 @@ function reset() {
         class="ml-auto"
         size="small"
         label="Сохранить"
-        :disabled="invalidRanges.length > 0"
         :loading="patch.isPending.value"
         @click="save"
       >
