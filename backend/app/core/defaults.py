@@ -34,8 +34,8 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "tax_rate": 0.10,
     "llm": {
         "max_vacancy_chars": 6000,
-        "letter_min_chars": 900,
-        "letter_max_chars": 1400,
+        "letter_min_chars": 400,
+        "letter_max_chars": 800,
     },
     # step -> llm_providers.id. Пусто, пока провайдеры не заведены
     "llm_routing": {},

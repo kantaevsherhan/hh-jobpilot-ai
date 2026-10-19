@@ -106,8 +106,8 @@ async def generate_letter(vacancy_id: int, payload: GenerateRequest, session: Se
         hidden_instructions=hidden,
         language=pick_language(vacancy.description_lang, list(resume.letter_languages)),
         examples=[example.content for example in examples],
-        min_chars=int(llm_settings.get("letter_min_chars", 900)),
-        max_chars=int(llm_settings.get("letter_max_chars", 1400)),
+        min_chars=int(llm_settings.get("letter_min_chars", 400)),
+        max_chars=int(llm_settings.get("letter_max_chars", 800)),
         max_vacancy_chars=int(llm_settings.get("max_vacancy_chars", 6000)),
         extra_instruction=payload.instruction,
     )
