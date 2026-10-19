@@ -66,3 +66,20 @@ class Setting(Base, TimestampMixin):
 
     key: Mapped[str] = mapped_column(String(100), primary_key=True)
     value_json: Mapped[dict[str, Any]] = mapped_column(default=dict)
+
+
+class Skill(Base, TimestampMixin):
+    """Скилл — набор правил стиля, который дописывается к выбранным промптам.
+
+    Текст хранится как есть (вместе с frontmatter SKILL.md): пользователь вставляет
+    файл целиком, а служебную шапку убирает подстановка.
+    """
+
+    __tablename__ = "skills"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(200))
+    content: Mapped[str] = mapped_column(Text)
+    # Ключи промптов (PromptKey), к которым подключён скилл
+    prompt_keys: Mapped[list[Any]] = mapped_column(default=list)
+    is_enabled: Mapped[bool] = mapped_column(Boolean, default=True)

@@ -2,17 +2,22 @@ import { type Ref } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import {
   createProvider,
+  createSkill,
   deleteProvider,
+  deleteSkill,
   fetchCliCatalog,
   fetchPrompts,
   fetchProviders,
   fetchRouting,
+  fetchSkills,
+  fetchSkillTargets,
   patchPrompt,
   patchProvider,
+  patchSkill,
   resetPrompt,
   saveRouting
 } from '@/api/llm'
-import type { ProviderInput } from '@/schemas/llm'
+import type { ProviderInput, SkillInput } from '@/schemas/llm'
 
 const PROVIDERS = ['providers'] as const
 const PROMPTS = ['prompts'] as const
@@ -56,3 +61,15 @@ export const usePatchPrompt = () =>
   )
 
 export const useResetPrompt = () => useInvalidating(PROMPTS, resetPrompt)
+
+const SKILLS = ['skills'] as const
+
+export const useSkills = () => useQuery({ queryKey: SKILLS, queryFn: fetchSkills })
+export const useSkillTargets = () =>
+  useQuery({ queryKey: [...SKILLS, 'targets'], queryFn: fetchSkillTargets, staleTime: Infinity })
+export const useCreateSkill = () => useInvalidating(SKILLS, createSkill)
+export const useDeleteSkill = () => useInvalidating(SKILLS, deleteSkill)
+export const usePatchSkill = () =>
+  useInvalidating(SKILLS, ({ id, payload }: { id: number; payload: Partial<SkillInput> }) =>
+    patchSkill(id, payload)
+  )

@@ -6,11 +6,16 @@ import {
   providerSchema,
   providerTestSchema,
   routingSchema,
+  skillSchema,
+  skillTargetSchema,
   type CliTool,
   type Prompt,
   type Provider,
   type ProviderInput,
-  type ProviderTest
+  type ProviderTest,
+  type Skill,
+  type SkillInput,
+  type SkillTarget
 } from '@/schemas/llm'
 
 export async function fetchProviders(): Promise<Provider[]> {
@@ -70,4 +75,28 @@ export async function patchPrompt(key: string, content: string): Promise<Prompt>
 export async function resetPrompt(key: string): Promise<Prompt> {
   const { data } = await api.post<unknown>(`/prompts/${key}/reset`)
   return promptSchema.parse(data)
+}
+
+export async function fetchSkills(): Promise<Skill[]> {
+  const { data } = await api.get<unknown>('/skills')
+  return z.array(skillSchema).parse(data)
+}
+
+export async function fetchSkillTargets(): Promise<SkillTarget[]> {
+  const { data } = await api.get<unknown>('/skills/targets')
+  return z.array(skillTargetSchema).parse(data)
+}
+
+export async function createSkill(payload: SkillInput): Promise<Skill> {
+  const { data } = await api.post<unknown>('/skills', payload)
+  return skillSchema.parse(data)
+}
+
+export async function patchSkill(id: number, payload: Partial<SkillInput>): Promise<Skill> {
+  const { data } = await api.patch<unknown>(`/skills/${String(id)}`, payload)
+  return skillSchema.parse(data)
+}
+
+export async function deleteSkill(id: number): Promise<void> {
+  await api.delete(`/skills/${String(id)}`)
 }

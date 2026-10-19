@@ -19,7 +19,8 @@ import {
   ShieldAlert,
   Sliders,
   Sparkles,
-  UserRound
+  UserRound,
+  Wand2
 } from 'lucide-vue-next'
 import { useUiStore } from '@/stores/ui'
 
@@ -63,6 +64,7 @@ const groups = [
     items: [
       { to: '/settings/providers', label: 'Модели и провайдеры', icon: Sparkles },
       { to: '/settings/prompts', label: 'Промпты', icon: UserRound },
+      { to: '/settings/skills', label: 'Скиллы', icon: Wand2 },
       { to: '/settings/delays', label: 'Задержки и лимиты', icon: Gauge },
       { to: '/settings/browser', label: 'Браузер', icon: Globe },
       { to: '/settings/general', label: 'Общие', icon: Sliders }

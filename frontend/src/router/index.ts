@@ -93,6 +93,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/PromptsPage.vue')
   },
   {
+    path: '/settings/skills',
+    name: 'skills',
+    meta: { title: 'Скиллы' },
+    component: () => import('@/pages/SkillsPage.vue')
+  },
+  {
     path: '/settings/delays',
     name: 'delays',
     meta: { title: 'Задержки и лимиты' },

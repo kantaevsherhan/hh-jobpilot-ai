@@ -1,7 +1,7 @@
 """Все модели. Импорт здесь нужен Alembic для autogenerate."""
 
 from app.storage.models.base import Base
-from app.storage.models.config import CompanyRule, LLMProvider, Prompt, Setting
+from app.storage.models.config import CompanyRule, LLMProvider, Prompt, Setting, Skill
 from app.storage.models.resume import (
     LetterExample,
     Resume,
@@ -29,5 +29,6 @@ __all__ = [
     "SearchProfile",
     "SearchQuery",
     "Setting",
+    "Skill",
     "Vacancy",
 ]

@@ -21,6 +21,7 @@ const MENU = [
   '/letter-examples',
   '/settings/providers',
   '/settings/prompts',
+  '/settings/skills',
   '/settings/delays',
   '/settings/browser',
   '/settings/general',

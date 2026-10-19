@@ -17,6 +17,7 @@ from app.api import (
     runs,
     search_profiles,
     settings,
+    skills,
     stats,
     vacancies,
 )
@@ -36,6 +37,7 @@ for module in (
     letter_examples,
     providers,
     prompts,
+    skills,
     runs,
     stats,
     settings,

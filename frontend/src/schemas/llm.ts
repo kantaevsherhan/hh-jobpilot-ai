@@ -75,3 +75,23 @@ export const ROUTING_STEPS = [
   { key: 'fact_check', label: 'Проверка фактов', hint: 'после каждого письма' },
   { key: 'answer_question', label: 'Ответы на вопросы', hint: 'редко' }
 ] as const
+
+export const skillSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  content: z.string(),
+  prompt_keys: z.array(z.string()),
+  is_enabled: z.boolean()
+})
+
+export const skillTargetSchema = z.object({ key: z.string(), title: z.string() })
+
+export type Skill = z.infer<typeof skillSchema>
+export type SkillTarget = z.infer<typeof skillTargetSchema>
+
+export interface SkillInput {
+  name: string
+  content: string
+  prompt_keys: string[]
+  is_enabled?: boolean
+}
