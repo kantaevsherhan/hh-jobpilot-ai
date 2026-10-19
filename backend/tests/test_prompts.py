@@ -82,3 +82,23 @@ def test_дефолтные_промпты_требуют_русский_отв�
     assert "по-русски" in analyze
     assert "reason" in analyze
     assert "по-русски" in fact_check
+
+
+def test_промпт_письма_держит_все_переменные_и_запрет_штампов() -> None:
+    letter = prompts.default_text(PromptKey.LETTER)
+
+    for name in [
+        "resume_digest",
+        "resume_text",
+        "allowed_facts",
+        "hidden_instructions",
+        "vacancy_description",
+        "letter_examples",
+        "min_chars",
+        "max_chars",
+        "language",
+    ]:
+        assert f"{{{{{name}}}}}" in letter
+    # Правила против текста «как от нейросети» и против усиления фактов
+    assert "важно отметить" in letter
+    assert "«участвовал» не становится «руководил»" in letter
