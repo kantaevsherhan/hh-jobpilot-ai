@@ -19,6 +19,8 @@ class StartRequest(BaseModel):
     mode: BotMode = BotMode.MANUAL
     runtime_mode: RuntimeMode = RuntimeMode.DRY_RUN
     search_profile_id: int | None = None
+    # Заново проанализировать вакансии, отклонённые моделью, по текущим правилам
+    reanalyze_rejected: bool = False
 
 
 @router.get("/status", summary="Состояние бота")
@@ -34,6 +36,7 @@ async def start(payload: StartRequest, session: Session) -> dict[str, Any]:
         mode=payload.mode.value,
         runtime_mode=payload.runtime_mode.value,
         search_profile_id=payload.search_profile_id,
+        reanalyze_rejected=payload.reanalyze_rejected,
     )
     return {"run_id": run_id} | await bot.status_dict()
 

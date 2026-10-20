@@ -282,3 +282,27 @@ async def test_скрытое_резюме_не_отправляется_и_об
     assert result.needs_data is True
     assert result.detail == "Резюме скрыто от работодателя"
     assert calls == ["open_form"]
+
+
+async def test_пересматриваются_только_отклонённые_моделью(session: AsyncSession) -> None:
+    from app.storage.repositories import vacancies as vacancy_repo
+
+    resume = make_resume()
+    rejected, filtered, applied = (
+        make_vacancy(hh_id=str(n), url=f"https://hh.kz/vacancy/{n}") for n in (1, 2, 3)
+    )
+    session.add_all([resume, rejected, filtered, applied])
+    await session.commit()
+    await vacancy_repo.ensure_decision(
+        session, resume.id, rejected.id, status=VacancyStatus.REJECTED_BY_AI.value
+    )
+    # Отсеянную фильтром пересматривать нельзя: стоп-слова при анализе не проверяются
+    await vacancy_repo.ensure_decision(
+        session, resume.id, filtered.id, status=VacancyStatus.FILTERED_OUT.value
+    )
+    await vacancy_repo.ensure_decision(
+        session, resume.id, applied.id, status=VacancyStatus.REJECTED_BY_AI.value
+    )
+    await record_application(session, vacancy_id=applied.id, resume_id=resume.id, hh_status="SENT")
+
+    assert await vacancy_repo.rejected_by_model_ids(session, resume.id) == [rejected.id]

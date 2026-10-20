@@ -142,3 +142,21 @@ async def has_application(session: AsyncSession, vacancy_id: int) -> bool:
     return (
         await session.scalar(select(Application.id).where(Application.vacancy_id == vacancy_id))
     ) is not None
+
+
+async def rejected_by_model_ids(session: AsyncSession, resume_id: int) -> list[int]:
+    """Вакансии, которые отклонила модель, а не фильтры, и на которые не откликались.
+
+    Отсеянные фильтрами (стоп-слова, формат, зарплата) сюда не попадают: при
+    повторном анализе фильтры не прогоняются, и они проскочили бы мимо них.
+    """
+    rows = await session.scalars(
+        select(ResumeVacancy.vacancy_id)
+        .where(
+            ResumeVacancy.resume_id == resume_id,
+            ResumeVacancy.status == VacancyStatus.REJECTED_BY_AI.value,
+            ResumeVacancy.vacancy_id.not_in(select(Application.vacancy_id)),
+        )
+        .order_by(ResumeVacancy.vacancy_id)
+    )
+    return list(rows.all())

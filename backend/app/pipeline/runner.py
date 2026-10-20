@@ -27,6 +27,7 @@ from app.pipeline.steps import HANDLERS
 from app.storage import session as db
 from app.storage.models import Resume, Run
 from app.storage.models.base import utcnow
+from app.storage.repositories import vacancies as vacancy_repo
 
 log = get_logger(__name__)
 
@@ -123,6 +124,7 @@ class BotRunner:
         mode: str = BotMode.MANUAL,
         runtime_mode: str = RuntimeMode.DRY_RUN,
         search_profile_id: int | None = None,
+        reanalyze_rejected: bool = False,
     ) -> int:
         if self.is_busy:
             raise ConflictError("BOT_ALREADY_RUNNING", "Прогон уже идёт")
@@ -164,6 +166,13 @@ class BotRunner:
                 JobType.SEARCH,
                 [{"search_profile_id": profile.id} for profile in ctx.profiles],
             )
+            if reanalyze_rejected:
+                # После смены правил отбора уже отклонённые вакансии стоит пересмотреть:
+                # описания в базе, браузер для анализа не нужен
+                rejected = await vacancy_repo.rejected_by_model_ids(session, resume_id)
+                await queue.add_many(
+                    session, run.id, JobType.ANALYZE, [{"vacancy_id": vid} for vid in rejected]
+                )
             await events.log_event(
                 session,
                 run.id,
