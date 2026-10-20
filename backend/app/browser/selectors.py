@@ -73,7 +73,10 @@ class HH:
         '[data-qa="vacancy-response-link-bottom"], '
         'a[data-qa="vacancy-serp__vacancy_response"]'
     )
-    ALREADY_APPLIED: Final = '[data-qa="vacancy-response-link-view-topic"]'
+    # После отклика HH показывает блок «Резюме доставлено» без своего data-qa,
+    # поэтому он ищется по тексту — и для «уже откликались», и для подтверждения
+    RESUME_DELIVERED: Final = ':text("Резюме доставлено")'
+    ALREADY_APPLIED: Final = f'[data-qa="vacancy-response-link-view-topic"], {RESUME_DELIVERED}'
     EXTERNAL_APPLY: Final = '[data-qa="vacancy-response-link-top-redirect"]'
 
     LETTER_TOGGLE: Final = '[data-qa="vacancy-response-letter-toggle"]'
@@ -81,7 +84,9 @@ class HH:
         '[data-qa="vacancy-response-popup-form-letter-input"], textarea[name="letter"]'
     )
     SUBMIT_BUTTON: Final = '[data-qa="vacancy-response-submit-popup"]'
-    APPLY_SUCCESS: Final = '[data-qa="vacancy-response-success"], [data-qa="chat-title"]'
+    APPLY_SUCCESS: Final = (
+        f'[data-qa="vacancy-response-success"], [data-qa="chat-title"], {RESUME_DELIVERED}'
+    )
 
     RESUME_SELECT: Final = '[data-qa="resume-select"]'
     # Атрибут содержит два токена через пробел («vacancy-response-question
