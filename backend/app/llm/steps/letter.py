@@ -7,7 +7,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import PromptKey
-from app.llm import prompts, router
+from app.llm import embellishment, prompts, router
 from app.llm.base import LLMProvider, LLMResult
 from app.llm.schemas import LetterResponse
 
@@ -80,6 +80,9 @@ async def write_letter(
             "min_chars": min_chars,
             "max_chars": max_chars,
             "letter_examples": "\n\n---\n\n".join(examples[:3]),
+            "embellishment_rules": embellishment.LETTER_RULES[
+                await embellishment.current_level(session)
+            ],
         },
     )
     if extra_instruction:

@@ -101,7 +101,8 @@ def test_промпт_письма_держит_все_переменные_и_�
         assert f"{{{{{name}}}}}" in letter
     # Правила против текста «как от нейросети» и против усиления фактов
     assert "важно отметить" in letter
-    assert "«участвовал» не становится «руководил»" in letter
+    # Насколько смело подавать опыт, решает регулятор: правила подставляются по уровню
+    assert "{{embellishment_rules}}" in letter
 
 
 def test_проверка_фактов_видит_полное_резюме() -> None:
@@ -135,3 +136,39 @@ def test_встроенные_примеры_соблюдают_правила_�
         assert not [p for p in style_problems(content, 0) if "двоеточие" in p], example["name"]
         # Подпись — заглушка, чтобы скопированное имя не ушло работодателю
         assert find_placeholders(content) == ["[Имя Фамилия]"], example["name"]
+
+
+class TestРегуляторПриукрашивания:
+    def test_по_умолчанию_умеренно(self) -> None:
+        from app.llm import embellishment
+
+        assert embellishment.normalize(None) == embellishment.MODERATE
+        assert embellishment.normalize("что-то") == embellishment.MODERATE
+
+    def test_выдумка_запрещена_на_любом_уровне(self) -> None:
+        from app.llm import embellishment
+
+        for level in embellishment.LEVELS:
+            assert "Никогда не выдумывай компании" in embellishment.LETTER_RULES[level]
+
+    def test_строгий_уровень_не_усиливает_формулировки(self) -> None:
+        from app.llm import embellishment
+
+        assert "«участвовал» не становится «руководил»" in embellishment.LETTER_RULES["strict"]
+
+    def test_словарь_не_блокирует_только_смелый_уровень(self) -> None:
+        from app.llm.steps.fact_check import dictionary_blocks
+
+        assert dictionary_blocks("strict") and dictionary_blocks("moderate")
+        assert not dictionary_blocks("bold")
+
+    async def test_уровень_берётся_из_настроек(self, session: AsyncSession) -> None:
+        from app.llm import embellishment
+        from app.storage.repositories import settings as settings_repo
+
+        await settings_repo.put(session, "llm", {"letter_embellishment": "bold"})
+
+        assert await embellishment.current_level(session) == "bold"
+
+    def test_проверка_фактов_знает_про_уровень(self) -> None:
+        assert "{{embellishment_rules}}" in prompts.default_text(PromptKey.FACT_CHECK)

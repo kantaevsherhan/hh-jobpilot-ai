@@ -36,6 +36,8 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "max_vacancy_chars": 6000,
         "letter_min_chars": 400,
         "letter_max_chars": 800,
+        # strict | moderate | bold — см. app/llm/embellishment.py
+        "letter_embellishment": "moderate",
     },
     # step -> llm_providers.id. Пусто, пока провайдеры не заведены
     "llm_routing": {},

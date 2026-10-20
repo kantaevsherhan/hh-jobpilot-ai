@@ -10,7 +10,13 @@ from app.api.deps import Session
 from app.api.vacancies import LetterOut
 from app.core.enums import LetterSource, VacancyStatus
 from app.core.errors import ConflictError
-from app.llm.steps.fact_check import dictionary_check, fact_check, find_placeholders
+from app.llm import embellishment
+from app.llm.steps.fact_check import (
+    dictionary_blocks,
+    dictionary_check,
+    fact_check,
+    find_placeholders,
+)
 from app.llm.steps.letter import check_instructions_followed, pick_language, write_letter
 from app.storage.models import Letter, LetterExample, Resume, Vacancy
 from app.storage.repositories import crud
@@ -193,7 +199,10 @@ async def run_fact_check(letter_id: int, resume_id: int, session: Session) -> Le
         "placeholders": placeholders,
         "llm": check.model_dump(),
     }
-    letter.fact_check_passed = check.valid and not unsupported and not placeholders
+    level = await embellishment.current_level(session)
+    letter.fact_check_passed = (
+        check.valid and not (unsupported and dictionary_blocks(level)) and not placeholders
+    )
     await session.commit()
     await session.refresh(letter)
     return letter

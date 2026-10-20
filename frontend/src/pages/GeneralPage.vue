@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import Button from 'primevue/button'
 import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
+import SelectButton from 'primevue/selectbutton'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { useToast } from 'primevue/usetoast'
 import { Save } from 'lucide-vue-next'
@@ -18,10 +19,28 @@ const rates = ref<Record<string, number>>({})
 const taxRate = ref(0.1)
 const llm = ref<AppSettings['llm']>({
   max_vacancy_chars: 6000,
-  letter_min_chars: 900,
-  letter_max_chars: 1400
+  letter_min_chars: 400,
+  letter_max_chars: 800,
+  letter_embellishment: 'moderate'
 })
 const answerQuestions = ref(false)
+const breadth = ref<AppSettings['bot']['apply_breadth']>('broad')
+
+const BREADTH_OPTIONS = [
+  { value: 'broad', label: 'Широкий' },
+  { value: 'strict', label: 'Строгий' }
+]
+const EMBELLISHMENT_OPTIONS = [
+  { value: 'strict', label: 'Строго' },
+  { value: 'moderate', label: 'Умеренно' },
+  { value: 'bold', label: 'Смело' }
+]
+const EMBELLISHMENT_HINTS: Record<string, string> = {
+  strict: 'Только то, что прямо написано в резюме, теми же словами.',
+  moderate:
+    'Любая технология из резюме, даже из списка дополнительных навыков, подаётся как рабочий опыт. Чего в резюме нет, письмо не упоминает и не пишет «нет опыта».',
+  bold: 'Как умеренно, плюс «знаком» с близкой технологией: React и Next.js, Express и NestJS, Vue и Nuxt.'
+}
 
 watch(
   settings,
@@ -31,6 +50,7 @@ watch(
     taxRate.value = value.tax_rate
     llm.value = { ...value.llm }
     answerQuestions.value = value.bot.answer_employer_questions
+    breadth.value = value.bot.apply_breadth
   },
   { immediate: true }
 )
@@ -41,7 +61,7 @@ function save() {
       currency_rates: rates.value,
       tax_rate: taxRate.value,
       llm: llm.value,
-      bot: { answer_employer_questions: answerQuestions.value }
+      bot: { answer_employer_questions: answerQuestions.value, apply_breadth: breadth.value }
     },
     {
       onSuccess: () => {
@@ -139,6 +159,43 @@ function save() {
             <InputNumber v-model="llm.letter_max_chars" size="small" fluid :min="300" />
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="mt-4 rounded-[14px] border border-slate-200 bg-white p-5">
+      <h3 class="text-[13.5px] font-semibold text-slate-800">Охват откликов и смелость писем</h3>
+
+      <div class="mt-3">
+        <label class="text-[13px] font-medium text-slate-700">Охват откликов</label>
+        <p class="mt-0.5 mb-2 max-w-prose text-[12px] leading-relaxed text-slate-500">
+          Широкий — откликаться и при частичном совпадении: нехватка одной-двух технологий или стажа
+          не повод отказываться, решает оценка. Чужая профессия и признаки развода отсекаются
+          всегда. Строгий — только уверенное совпадение.
+        </p>
+        <SelectButton
+          v-model="breadth"
+          :options="BREADTH_OPTIONS"
+          option-label="label"
+          option-value="value"
+          :allow-empty="false"
+          size="small"
+        />
+      </div>
+
+      <div class="mt-5 border-t border-slate-200 pt-4">
+        <label class="text-[13px] font-medium text-slate-700">Насколько смело писать письма</label>
+        <p class="mt-0.5 mb-2 max-w-prose text-[12px] leading-relaxed text-slate-500">
+          {{ EMBELLISHMENT_HINTS[llm.letter_embellishment] }} Компании, должности, проекты, сроки и
+          цифры не выдумываются ни на каком уровне — это проверяется перед отправкой.
+        </p>
+        <SelectButton
+          v-model="llm.letter_embellishment"
+          :options="EMBELLISHMENT_OPTIONS"
+          option-label="label"
+          option-value="value"
+          :allow-empty="false"
+          size="small"
+        />
       </div>
     </section>
 

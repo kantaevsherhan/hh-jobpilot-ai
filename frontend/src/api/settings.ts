@@ -20,9 +20,13 @@ export const settingsSchema = z.object({
   llm: z.object({
     max_vacancy_chars: z.number(),
     letter_min_chars: z.number(),
-    letter_max_chars: z.number()
+    letter_max_chars: z.number(),
+    letter_embellishment: z.enum(['strict', 'moderate', 'bold']).default('moderate')
   }),
-  bot: z.object({ answer_employer_questions: z.boolean() })
+  bot: z.object({
+    answer_employer_questions: z.boolean(),
+    apply_breadth: z.enum(['broad', 'strict']).default('broad')
+  })
 })
 
 export type AppSettings = z.infer<typeof settingsSchema>

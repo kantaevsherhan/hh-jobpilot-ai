@@ -24,8 +24,14 @@ from app.core.errors import AppError
 from app.core.logging import get_logger
 from app.filters.engine import VacancyFacts, run_filters
 from app.filters.suspicious import check_suspicious
+from app.llm import embellishment
 from app.llm.steps.analyze import analyze_vacancy
-from app.llm.steps.fact_check import dictionary_check, fact_check, find_placeholders
+from app.llm.steps.fact_check import (
+    dictionary_blocks,
+    dictionary_check,
+    fact_check,
+    find_placeholders,
+)
 from app.llm.steps.letter import check_instructions_followed, pick_language, write_letter
 from app.pipeline import applying, events, queue
 from app.pipeline.context import RunContext
@@ -397,7 +403,12 @@ async def run_fact_check(
     )
     placeholders = find_placeholders(letter_row.content)
 
-    passed = check.valid and not dictionary_unsupported and not placeholders
+    level = await embellishment.current_level(session)
+    passed = (
+        check.valid
+        and not (dictionary_unsupported and dictionary_blocks(level))
+        and not placeholders
+    )
     letter_row.fact_check_json = {
         **(letter_row.fact_check_json or {}),
         "dictionary_unsupported": dictionary_unsupported,

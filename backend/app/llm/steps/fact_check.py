@@ -11,7 +11,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import PromptKey
-from app.llm import prompts, router
+from app.llm import embellishment, prompts, router
 from app.llm.base import LLMResult
 from app.llm.schemas import FactCheckResponse
 
@@ -188,6 +188,12 @@ def dictionary_check(
 _PLACEHOLDER = re.compile(r"\[[^\[\]\n]{2,80}\]")
 
 
+def dictionary_blocks(level: str) -> bool:
+    """Словарная проверка ловит любую технологию не из резюме. На уровне «смело»
+    близкая технология с «знаком» разрешена, и блокировать письмо словарь не должен."""
+    return level != embellishment.BOLD
+
+
 def find_placeholders(letter: str) -> list[str]:
     """Незаполненные места в квадратных скобках, без markdown-ссылок вида [текст](url)."""
     return [
@@ -215,6 +221,9 @@ async def fact_check(
             # компании, сроки, Flyway — хотя в резюме они есть
             "resume_text": resume_text,
             "allowed_facts": allowed_facts,
+            "embellishment_rules": embellishment.FACT_CHECK_RULES[
+                await embellishment.current_level(session)
+            ],
         },
     )
     provider = await router.provider_for_step(session, PromptKey.FACT_CHECK)
