@@ -61,6 +61,22 @@ function missingInstructions(letter: Letter): string[] {
   const value = letter.fact_check_json?.instructions_missing
   return Array.isArray(value) ? value.map(String) : []
 }
+
+function placeholders(letter: Letter): string[] {
+  const value = letter.fact_check_json?.placeholders
+  return Array.isArray(value) ? value.map(String) : []
+}
+
+/** Претензии модели к письму: без них непонятно, почему отправка заблокирована. */
+function llmCheck(letter: Letter): { claims: string[]; fixes: string[] } {
+  const llm = letter.fact_check_json?.llm
+  if (typeof llm !== 'object' || llm === null) return { claims: [], fixes: [] }
+  const { unsupported_claims: claims, suggested_fixes: fixes } = llm as Record<string, unknown>
+  return {
+    claims: Array.isArray(claims) ? claims.map(String) : [],
+    fixes: Array.isArray(fixes) ? fixes.map(String) : []
+  }
+}
 </script>
 
 <template>
@@ -160,6 +176,34 @@ function missingInstructions(letter: Letter): string[] {
       class="text-[12.5px]"
     >
       Не выполнены условия работодателя: {{ missingInstructions(selected).join(', ') }}
+    </Message>
+
+    <Message
+      v-if="selected && placeholders(selected).length"
+      severity="warn"
+      size="small"
+      class="text-[12.5px]"
+    >
+      Допишите сами — этих данных нет в резюме: {{ placeholders(selected).join(', ') }}. Поправьте
+      текст и нажмите «Сохранить как своё».
+    </Message>
+
+    <Message
+      v-if="selected && llmCheck(selected).claims.length"
+      severity="error"
+      size="small"
+      class="text-[12.5px]"
+    >
+      <p class="font-medium">Проверка фактов нашла утверждения, которых нет в резюме:</p>
+      <ul class="mt-1 list-disc space-y-0.5 pl-4">
+        <li v-for="claim in llmCheck(selected).claims" :key="claim">{{ claim }}</li>
+      </ul>
+      <template v-if="llmCheck(selected).fixes.length">
+        <p class="mt-2 font-medium">Как исправить:</p>
+        <ul class="mt-1 list-disc space-y-0.5 pl-4">
+          <li v-for="fix in llmCheck(selected).fixes" :key="fix">{{ fix }}</li>
+        </ul>
+      </template>
     </Message>
 
     <section v-if="(letters?.length ?? 0) > 1">

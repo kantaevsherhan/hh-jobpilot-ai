@@ -1,7 +1,7 @@
 """Скрытые инструкции, словарная проверка фактов, личные данные (§16, §18, §19)."""
 
 from app.core.personal_data import find_personal_data_request, is_allowed_field
-from app.llm.steps.fact_check import dictionary_check
+from app.llm.steps.fact_check import dictionary_check, find_placeholders
 from app.llm.steps.letter import (
     call_with_min_length,
     check_instructions_followed,
@@ -183,3 +183,16 @@ class TestДлинаПисьма:
         letter, _ = await call_with_min_length(provider, "промпт", min_chars=400)
 
         assert letter.letter == "Первый вариант."
+
+
+class TestЗаглушки:
+    def test_незаполненные_места_в_скобках_находятся(self) -> None:
+        letter = "Ожидания по зарплате: [укажите сумму]. Самый сложный баг: [опишите]."
+
+        assert find_placeholders(letter) == ["[укажите сумму]", "[опишите]"]
+
+    def test_markdown_ссылка_не_заглушка(self) -> None:
+        assert find_placeholders("Код: [GitHub](https://github.com/x)") == []
+
+    def test_письмо_без_скобок_чистое(self) -> None:
+        assert find_placeholders("Готов созвониться на этой неделе.") == []

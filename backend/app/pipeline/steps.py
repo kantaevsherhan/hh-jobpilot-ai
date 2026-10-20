@@ -25,7 +25,7 @@ from app.core.logging import get_logger
 from app.filters.engine import VacancyFacts, run_filters
 from app.filters.suspicious import check_suspicious
 from app.llm.steps.analyze import analyze_vacancy
-from app.llm.steps.fact_check import dictionary_check, fact_check
+from app.llm.steps.fact_check import dictionary_check, fact_check, find_placeholders
 from app.llm.steps.letter import check_instructions_followed, pick_language, write_letter
 from app.pipeline import applying, events, queue
 from app.pipeline.context import RunContext
@@ -349,12 +349,16 @@ async def run_fact_check(
         session,
         letter=letter_row.content,
         digest=ctx.resume.digest_json,
+        resume_text=ctx.resume.raw_text,
         allowed_facts=ctx.resume.allowed_facts,
     )
+    placeholders = find_placeholders(letter_row.content)
 
-    passed = check.valid and not dictionary_unsupported
+    passed = check.valid and not dictionary_unsupported and not placeholders
     letter_row.fact_check_json = {
+        **(letter_row.fact_check_json or {}),
         "dictionary_unsupported": dictionary_unsupported,
+        "placeholders": placeholders,
         "llm": check.model_dump(),
     }
     letter_row.fact_check_passed = passed

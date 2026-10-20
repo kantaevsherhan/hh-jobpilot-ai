@@ -10,7 +10,7 @@ from app.api.deps import Session
 from app.api.vacancies import LetterOut
 from app.core.enums import LetterSource, VacancyStatus
 from app.core.errors import ConflictError
-from app.llm.steps.fact_check import dictionary_check, fact_check
+from app.llm.steps.fact_check import dictionary_check, fact_check, find_placeholders
 from app.llm.steps.letter import check_instructions_followed, pick_language, write_letter
 from app.storage.models import Letter, LetterExample, Resume, Vacancy
 from app.storage.repositories import crud
@@ -178,14 +178,19 @@ async def run_fact_check(letter_id: int, resume_id: int, session: Session) -> Le
         session,
         letter=letter.content,
         digest=resume.digest_json,
+        resume_text=resume.raw_text,
         allowed_facts=resume.allowed_facts,
     )
+    placeholders = find_placeholders(letter.content)
 
+    # instructions_missing из генерации сохраняется: проверка фактов его не пересчитывает
     letter.fact_check_json = {
+        **(letter.fact_check_json or {}),
         "dictionary_unsupported": unsupported,
+        "placeholders": placeholders,
         "llm": check.model_dump(),
     }
-    letter.fact_check_passed = check.valid and not unsupported
+    letter.fact_check_passed = check.valid and not unsupported and not placeholders
     await session.commit()
     await session.refresh(letter)
     return letter

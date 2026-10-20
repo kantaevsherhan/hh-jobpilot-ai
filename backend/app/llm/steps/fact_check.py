@@ -183,11 +183,26 @@ def dictionary_check(
     ]
 
 
+# «[укажите сумму]», «[Имя]» — модель оставляет такие места, когда работодатель
+# спрашивает то, чего нет в резюме. Отправлять письмо с ними нельзя
+_PLACEHOLDER = re.compile(r"\[[^\[\]\n]{2,80}\]")
+
+
+def find_placeholders(letter: str) -> list[str]:
+    """Незаполненные места в квадратных скобках, без markdown-ссылок вида [текст](url)."""
+    return [
+        match.group(0)
+        for match in _PLACEHOLDER.finditer(letter)
+        if letter[match.end():match.end() + 1] != "("
+    ]
+
+
 async def fact_check(
     session: AsyncSession,
     *,
     letter: str,
     digest: dict[str, Any] | None,
+    resume_text: str,
     allowed_facts: str,
 ) -> tuple[FactCheckResponse, LLMResult]:
     template = await prompts.get_text(session, PromptKey.FACT_CHECK)
@@ -196,6 +211,9 @@ async def fact_check(
         {
             "letter": letter,
             "resume_digest": json.dumps(digest, ensure_ascii=False, indent=1) if digest else "—",
+            # Без полного текста проверка считала выдумкой всё, чего нет в выжимке:
+            # компании, сроки, Flyway — хотя в резюме они есть
+            "resume_text": resume_text,
             "allowed_facts": allowed_facts,
         },
     )
