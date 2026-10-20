@@ -193,7 +193,7 @@ def find_placeholders(letter: str) -> list[str]:
     return [
         match.group(0)
         for match in _PLACEHOLDER.finditer(letter)
-        if letter[match.end():match.end() + 1] != "("
+        if letter[match.end() : match.end() + 1] != "("
     ]
 
 
