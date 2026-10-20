@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help setup dev check backend frontend ollama test test-backend test-front lint fmt build ci migrate revision seed backup clean
+.PHONY: help setup dev check backend frontend ollama docker-up docker-down docker-logs test test-backend test-front lint fmt build ci migrate revision seed backup clean
 
 BACKEND  := backend
 FRONTEND := frontend
@@ -45,6 +45,15 @@ frontend:      ## Только frontend
 
 ollama:        ## Только Ollama
 	ollama serve
+
+docker-up:     ## Запустить всё в Docker: http://localhost:5173
+	docker compose up -d --build
+
+docker-down:   ## Остановить Docker (данные в volume сохраняются)
+	docker compose down
+
+docker-logs:   ## Логи бэкенда в Docker
+	docker compose logs -f backend
 
 # ─────────────────────────────────────────────────────────────
 # Установка

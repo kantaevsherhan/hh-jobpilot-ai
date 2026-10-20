@@ -401,6 +401,16 @@ const sections = [
                     >
                       Проверить вход
                     </button>
+                    <!-- В Docker окно браузера смотрят через noVNC в отдельной вкладке -->
+                    <a
+                      v-if="browser?.is_running && browser.view_url"
+                      :href="browser.view_url"
+                      target="_blank"
+                      rel="noopener"
+                      class="inline-flex items-center gap-1 text-[12.5px] font-medium text-teal-800 hover:underline"
+                    >
+                      Окно браузера <ExternalLink class="size-3.5" />
+                    </a>
                   </template>
                 </div>
               </div>

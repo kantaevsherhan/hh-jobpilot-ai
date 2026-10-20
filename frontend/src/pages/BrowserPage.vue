@@ -2,7 +2,14 @@
 import { computed } from 'vue'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
-import { CircleCheck, CircleSlash, LogIn, Loader2, TriangleAlert } from 'lucide-vue-next'
+import {
+  CircleCheck,
+  CircleSlash,
+  ExternalLink,
+  LogIn,
+  Loader2,
+  TriangleAlert
+} from 'lucide-vue-next'
 import { toMessage } from '@/api/client'
 import { useToast } from 'primevue/usetoast'
 import {
@@ -108,7 +115,22 @@ function onError(error: unknown) {
             @click="close.mutate(undefined, { onError })"
           />
         </template>
+        <a
+          v-if="status?.view_url"
+          :href="status.view_url"
+          target="_blank"
+          rel="noopener"
+          class="inline-flex items-center gap-1.5 rounded-[9px] border border-teal-700 px-3 py-1.5 text-[13px] font-medium text-teal-800 hover:bg-teal-50"
+        >
+          <ExternalLink class="size-3.5" />
+          Открыть окно браузера
+        </a>
       </div>
+
+      <p v-if="status?.view_url" class="mt-2 text-[12.5px] text-slate-500">
+        Приложение запущено в Docker, поэтому окно браузера открывается в отдельной вкладке. Там и
+        входите в hh.kz.
+      </p>
 
       <Message v-if="state === 'NEEDS_LOGIN'" severity="warn" size="small" class="mt-4">
         <p class="font-medium">Войдите в hh.kz в открывшемся окне</p>

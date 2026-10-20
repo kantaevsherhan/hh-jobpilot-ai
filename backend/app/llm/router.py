@@ -12,15 +12,19 @@
 import asyncio
 import time
 from typing import Any, TypeVar
+from urllib.parse import urlsplit, urlunsplit
 
 from pydantic import BaseModel, ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
+from app.core.enums import ProviderType
 from app.core.errors import AppError
 from app.core.logging import get_logger
 from app.llm.base import LLMProvider, LLMResult, extract_json
 from app.llm.providers import REGISTRY
+from app.llm.providers.ollama import DEFAULT_URL as OLLAMA_DEFAULT_URL
 from app.storage.models import LLMProvider as ProviderRow
 from app.storage.repositories import settings as settings_repo
 
@@ -31,14 +35,27 @@ T = TypeVar("T", bound=BaseModel)
 RETRY_HINT = "\n\nВерни строго JSON по схеме, без пояснений и без текста вокруг."
 
 
+def reachable_url(url: str | None, alias: str | None) -> str | None:
+    """Заменить localhost на хост, видимый из контейнера. Внешние адреса не трогаются."""
+    if not url or not alias:
+        return url
+    parts = urlsplit(url)
+    if parts.hostname not in {"localhost", "127.0.0.1", "::1"}:
+        return url
+    netloc = f"{alias}:{parts.port}" if parts.port else alias
+    return urlunsplit(parts._replace(netloc=netloc))
+
+
 def build_provider(row: ProviderRow) -> LLMProvider:
     cls = REGISTRY.get(row.type)
     if cls is None:
         raise AppError("PROVIDER_UNAVAILABLE", f"Неизвестный тип провайдера: {row.type}")
+    # У Ollama пустой адрес означает localhost — его тоже надо уметь подменить
+    base_url = row.base_url or (OLLAMA_DEFAULT_URL if row.type == ProviderType.OLLAMA else None)
     return cls(
         name=row.name,
         model=row.model,
-        base_url=row.base_url,
+        base_url=reachable_url(base_url, settings.localhost_alias),
         api_key=row.api_key,
         temperature=row.temperature,
         timeout_sec=row.timeout_sec,

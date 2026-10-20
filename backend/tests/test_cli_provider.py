@@ -34,6 +34,8 @@ def test_codex_только_чтение_и_ответ_в_файл(tmp_path: Pat
     argv = cli.build_argv("codex", "codex.exe", model="gpt-x", effort="medium", output_file=out)
 
     assert argv[:2] == ["codex.exe", "exec"]
+    # Конфиг пользователя написан под его машину и ломает запуск в контейнере
+    assert "--ignore-user-config" in argv
     assert argv[argv.index("--sandbox") + 1] == "read-only"
     assert argv[argv.index("-o") + 1] == str(out)
     assert 'model_reasoning_effort="medium"' in argv

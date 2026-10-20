@@ -102,9 +102,21 @@ def load_codex_models(cache_file: Path | None = None) -> list[CLIModel]:
     try:
         data: Any = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return [CLIModel("", "По умолчанию CLI", "Модель из ~/.codex/config.toml")]
+        return [
+            CLIModel(
+                "",
+                "По умолчанию CLI",
+                "Модель Codex по умолчанию: config.toml пользователя не читается",
+            )
+        ]
 
-    models = [CLIModel("", "По умолчанию CLI", "Модель из ~/.codex/config.toml")]
+    models = [
+        CLIModel(
+            "",
+            "По умолчанию CLI",
+            "Модель Codex по умолчанию: config.toml пользователя не читается",
+        )
+    ]
     raw_models = data.get("models", []) if isinstance(data, dict) else []
     for item in sorted(raw_models, key=lambda m: m.get("priority", 999)):
         if not isinstance(item, dict) or item.get("visibility", "list") != "list":
@@ -161,7 +173,10 @@ def build_argv(
         return argv
 
     if command == CODEX:
-        argv = [executable, "exec", "--skip-git-repo-check", "--ephemeral"]
+        # --ignore-user-config: config.toml пользователя написан под его машину
+        # (хуки, пути Windows) и в контейнере ломает запуск; модель и effort
+        # всё равно задаются здесь явно. Вход берётся из auth.json как обычно
+        argv = [executable, "exec", "--skip-git-repo-check", "--ephemeral", "--ignore-user-config"]
         argv += ["--sandbox", "read-only", "--color", "never", "-o", str(output_file)]
         if model:
             argv += ["--model", model]

@@ -90,3 +90,16 @@ async def test_недоступный_провайдер_пробует_ещё_�
 
     assert exc.value.error_code == "PROVIDER_UNAVAILABLE"
     assert provider.calls == 2
+
+
+def test_в_docker_localhost_ollama_подменяется_на_хост() -> None:
+    alias = "host.docker.internal"
+
+    assert router.reachable_url("http://localhost:11434", alias) == f"http://{alias}:11434"
+    assert router.reachable_url("http://127.0.0.1:11434/v1", alias) == f"http://{alias}:11434/v1"
+    # Внешние адреса и запуск без Docker не трогаются
+    assert (
+        router.reachable_url("https://openrouter.ai/api/v1", alias)
+        == "https://openrouter.ai/api/v1"
+    )
+    assert router.reachable_url("http://localhost:11434", None) == "http://localhost:11434"

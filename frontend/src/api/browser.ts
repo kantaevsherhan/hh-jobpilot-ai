@@ -6,7 +6,8 @@ export const browserStatusSchema = z.object({
   label: z.string(),
   is_running: z.boolean(),
   user_data_dir: z.string(),
-  last_error: z.string().nullable()
+  last_error: z.string().nullable(),
+  view_url: z.string().nullable().optional()
 })
 
 export type BrowserStatus = z.infer<typeof browserStatusSchema>

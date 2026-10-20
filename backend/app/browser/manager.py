@@ -174,6 +174,7 @@ class BrowserManager:
             "is_running": self.is_running,
             "user_data_dir": str(self.user_data_dir),
             "last_error": self.last_error,
+            "view_url": settings.browser_view_url,
         }
 
     async def _cleanup(self) -> None:

@@ -1,0 +1,44 @@
+# Запуск: docker compose up -d --build   →   http://localhost:5173
+# Порты открыты только на localhost: приложение однопользовательское, а noVNC
+# без пароля показывает окно с вашей сессией hh.kz.
+name: hh-jobpilot
+
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      BROWSER_USER_DATA_DIR: /app/data/browser/docker
+      BROWSER_VIEW_URL: http://localhost:6080/vnc.html?autoconnect=1&resize=scale
+      # Ollama работает на хосте, а не в контейнере
+      LOCALHOST_ALIAS: host.docker.internal
+      JOBPILOT_KEY_FILE: /keys/secret.key
+    extra_hosts:
+      # На Linux host.docker.internal сам не появляется
+      - host.docker.internal:host-gateway
+    volumes:
+      - jobpilot-data:/app/data
+      # Только для первого запуска: база из ./data копируется в volume
+      - ./data:/seed:ro
+      # Тот же ключ шифрования, что при запуске из терминала: иначе сохранённые
+      # API-ключи провайдеров не расшифруются
+      - ${USERPROFILE:-${HOME}}/.config/hh-jobpilot:/keys
+      # Вход в Claude Code и Codex: CLI в контейнере работают по вашей подписке
+      - ${USERPROFILE:-${HOME}}/.claude/.credentials.json:/root/.claude/.credentials.json
+      - ${USERPROFILE:-${HOME}}/.codex/auth.json:/root/.codex/auth.json
+    # Chromium падает на стандартных 64 МБ /dev/shm
+    shm_size: 1gb
+    ports:
+      - 127.0.0.1:8000:8000
+      - 127.0.0.1:6080:6080
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - 127.0.0.1:5173:80
+
+volumes:
+  jobpilot-data:

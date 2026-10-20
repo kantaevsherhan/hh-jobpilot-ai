@@ -25,6 +25,14 @@ class Settings(BaseSettings):
 
     browser_user_data_dir: str = "./data/browser/default"
 
+    # В Docker окно браузера живёт на виртуальном экране, а пользователь видит его
+    # через noVNC по этому адресу. При запуске из терминала окно обычное, адреса нет
+    browser_view_url: str | None = None
+
+    # Из контейнера localhost — это сам контейнер. Адреса провайдеров в базе общие
+    # для обоих режимов запуска, поэтому localhost подменяется на этот хост
+    localhost_alias: str | None = None
+
     @property
     def data_dir(self) -> Path:
         return ROOT_DIR / "data"
