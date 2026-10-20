@@ -9,7 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.defaults import DEFAULT_PROVIDER
 from app.core.enums import PROMPT_KEY_LABELS, PromptKey
-from app.storage.models import LLMProvider, Prompt, Skill
+from app.core.letter_examples import DEFAULT_LETTER_EXAMPLES
+from app.storage.models import LetterExample, LLMProvider, Prompt, Skill
+from app.storage.repositories import settings as settings_repo
+
+LETTER_EXAMPLES_SEEDED = "letter_examples_seeded"
 
 PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
 
@@ -40,6 +44,20 @@ async def seed_defaults(session: AsyncSession) -> int:
     if added:
         await session.commit()
     return added
+
+
+async def seed_letter_examples(session: AsyncSession) -> int:
+    """Встроенные примеры писем — один раз на базу.
+
+    Отметка в настройках, а не проверка «таблица пуста»: пользователь мог удалить
+    все примеры, и при перезапуске они не должны возвращаться.
+    """
+    if await settings_repo.get_one(session, LETTER_EXAMPLES_SEEDED):
+        return 0
+    for example in DEFAULT_LETTER_EXAMPLES:
+        session.add(LetterExample(resume_id=None, **example))
+    await settings_repo.put(session, LETTER_EXAMPLES_SEEDED, True)
+    return len(DEFAULT_LETTER_EXAMPLES)
 
 
 async def seed_default_provider(session: AsyncSession) -> bool:

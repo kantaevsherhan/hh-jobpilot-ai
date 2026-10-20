@@ -13,7 +13,7 @@ from app.core.config import settings
 from app.core.enums import StopReason
 from app.core.errors import register_error_handlers
 from app.core.logging import get_logger, setup_logging
-from app.llm.prompts import seed_default_provider, seed_defaults
+from app.llm.prompts import seed_default_provider, seed_defaults, seed_letter_examples
 from app.pipeline.queue import recover_after_crash
 from app.pipeline.runner import bot
 from app.storage import session as db
@@ -38,6 +38,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         async with db.session_factory()() as session:
             added = await seed_defaults(session)
             provider_added = await seed_default_provider(session)
+            await seed_letter_examples(session)
             # Прогоны, прерванные падением приложения, надо привести в порядок (§22)
             recovered = await recover_after_crash(session)
         if recovered["runs_interrupted"]:

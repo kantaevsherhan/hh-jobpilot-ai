@@ -84,10 +84,13 @@ async def generate_letter(vacancy_id: int, payload: GenerateRequest, session: Se
     examples = list(
         (
             await session.scalars(
-                select(LetterExample).where(
+                select(LetterExample)
+                .where(
                     LetterExample.is_active,
                     (LetterExample.resume_id.is_(None)) | (LetterExample.resume_id == resume.id),
                 )
+                # В промпт идут первые три: предпочтительные должны попасть туда точно
+                .order_by(LetterExample.is_preferred.desc(), LetterExample.id)
             )
         ).all()
     )

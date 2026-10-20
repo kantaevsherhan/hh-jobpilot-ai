@@ -17,7 +17,7 @@ import { useLetterExamples, useMutate } from '@/queries'
 import { useUiStore } from '@/stores/ui'
 import type { LetterExample } from '@/api/catalogs'
 
-const CATEGORIES = ['Backend', 'Fullstack', 'Go', 'Стартап', 'Энтерпрайз', 'Общий']
+const CATEGORIES = ['Backend', 'Frontend', 'Fullstack', 'Go', 'Стартап', 'Энтерпрайз', 'Общий']
 const TONES = ['Нейтральный', 'Дружелюбный', 'Строгий', 'Технический']
 
 const toast = useToast()

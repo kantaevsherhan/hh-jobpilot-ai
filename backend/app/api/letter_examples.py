@@ -9,7 +9,7 @@ from app.storage.repositories import crud
 
 router = APIRouter(prefix="/letter-examples", tags=["Примеры писем"])
 
-CATEGORIES = ["Backend", "Fullstack", "Go", "Стартап", "Энтерпрайз", "Общий"]
+CATEGORIES = ["Backend", "Frontend", "Fullstack", "Go", "Стартап", "Энтерпрайз", "Общий"]
 
 
 class ExampleIn(BaseModel):

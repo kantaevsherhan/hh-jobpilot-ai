@@ -107,3 +107,31 @@ def test_промпт_письма_держит_все_переменные_и_�
 def test_проверка_фактов_видит_полное_резюме() -> None:
     """С одной выжимкой проверка считала выдумкой компании и сроки из резюме."""
     assert "{{resume_text}}" in prompts.default_text(PromptKey.FACT_CHECK)
+
+
+async def test_встроенные_примеры_писем_добавляются_один_раз(session: AsyncSession) -> None:
+    from app.storage.models import LetterExample
+
+    added = await prompts.seed_letter_examples(session)
+    for row in (await session.scalars(select(LetterExample))).all():
+        await session.delete(row)
+    await session.commit()
+    again = await prompts.seed_letter_examples(session)
+
+    assert added > 0
+    # Пользователь удалил примеры — перезапуск их не возвращает
+    assert again == 0
+
+
+def test_встроенные_примеры_соблюдают_правила_письма() -> None:
+    from app.core.letter_examples import DEFAULT_LETTER_EXAMPLES
+    from app.llm.steps.fact_check import find_placeholders
+    from app.llm.steps.letter import style_problems
+
+    for example in DEFAULT_LETTER_EXAMPLES:
+        content = example["content"]
+        assert content.split("\n")[0].rstrip("!") in {"Здравствуйте", "Добрый день", "Привет"}
+        # Двоеточий нет; длину не проверяем — среди примеров есть короткий
+        assert not [p for p in style_problems(content, 0) if "двоеточие" in p], example["name"]
+        # Подпись — заглушка, чтобы скопированное имя не ушло работодателю
+        assert find_placeholders(content) == ["[Имя Фамилия]"], example["name"]
