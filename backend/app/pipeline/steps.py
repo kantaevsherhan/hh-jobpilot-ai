@@ -276,6 +276,7 @@ async def analyze(
                 ctx.settings.get("bot", {}).get("answer_employer_questions", False)
             ),
             already_applied=await vacancy_repo.has_application(session, vacancy_id),
+            broad=ctx.settings.get("bot", {}).get("apply_breadth", "broad") == "broad",
         )
     )
 

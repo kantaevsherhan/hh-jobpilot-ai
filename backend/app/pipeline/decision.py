@@ -20,6 +20,10 @@ class DecisionInput:
     mode: str = BotMode.MANUAL
     answer_employer_questions: bool = False
     already_applied: bool = False
+    # Широкий охват: «не справится» и «нет критического навыка» не отсекают
+    # вакансию сами по себе — на частичное совпадение откликаться выгоднее,
+    # недостающее учат до собеседования. Решает оценка
+    broad: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,7 +75,7 @@ def decide(data: DecisionInput) -> Decision:
             score,
         )
 
-    if not analysis.can_do_job:
+    if not analysis.can_do_job and not data.broad:
         return Decision(
             VacancyStatus.REJECTED_BY_AI,
             SkipReason.CANNOT_DO_JOB,
@@ -79,7 +83,7 @@ def decide(data: DecisionInput) -> Decision:
             score,
         )
 
-    if analysis.critical_missing:
+    if analysis.critical_missing and not data.broad:
         return Decision(
             VacancyStatus.REJECTED_BY_AI,
             SkipReason.CRITICAL_SKILL_MISSING,
@@ -95,7 +99,13 @@ def decide(data: DecisionInput) -> Decision:
             score,
         )
 
-    if analysis.employer_questions_detected and not data.answer_employer_questions:
+    # В широком режиме вопросы из описания закрывает письмо; чего нет в резюме,
+    # оно оставит заглушкой, и такое письмо само не уйдёт
+    if (
+        analysis.employer_questions_detected
+        and not data.answer_employer_questions
+        and not data.broad
+    ):
         return Decision(
             VacancyStatus.NEEDS_DATA,
             None,

@@ -41,6 +41,8 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "llm_routing": {},
     "bot": {
         "answer_employer_questions": False,
+        # broad — откликаться и на частичное совпадение, strict — только на уверенное
+        "apply_breadth": "broad",
     },
 }
 

@@ -150,3 +150,52 @@ def test_уже_откликались_перевешивает_всё() -> None
 def test_оценка_не_выходит_за_границы() -> None:
     assert decide_with(analysis=make_analysis(score=95), company_score_delta=50).score == 100
     assert decide_with(analysis=make_analysis(score=5), company_score_delta=-50).score == 0
+
+
+class TestШирокийОхват:
+    """На частичное совпадение откликаться выгоднее: отвечают на 5 откликов из 100."""
+
+    def test_не_справится_не_отсекает_если_оценка_проходит(self) -> None:
+        decision = decide_with(
+            analysis=make_analysis(can_do_job=False, score=65),
+            broad=True,
+            min_score=60,
+            auto_apply_score=70,
+        )
+
+        assert decision.status == VacancyStatus.REVIEW_REQUIRED
+
+    def test_нехватка_навыка_не_отсекает(self) -> None:
+        decision = decide_with(
+            analysis=make_analysis(critical_missing=["Kafka"], score=75),
+            broad=True,
+            min_score=60,
+            auto_apply_score=70,
+            mode=BotMode.AUTO,
+        )
+
+        assert decision.status == VacancyStatus.LETTER_READY
+
+    def test_вопросы_из_описания_закрывает_письмо(self) -> None:
+        decision = decide_with(
+            analysis=make_analysis(employer_questions_detected=True, score=80),
+            broad=True,
+            min_score=60,
+            auto_apply_score=70,
+            mode=BotMode.AUTO,
+        )
+
+        assert decision.status == VacancyStatus.LETTER_READY
+
+    def test_чужая_профессия_отсекается_всегда(self) -> None:
+        # Разработчику не нужны отклики на слесаря, сколько бы ни было охвата
+        decision = decide_with(analysis=make_analysis(profession_match=False), broad=True)
+
+        assert decision.skip_reason == SkipReason.PROFESSION_MISMATCH
+
+    def test_низкая_оценка_отсекается_и_в_широком_режиме(self) -> None:
+        decision = decide_with(
+            analysis=make_analysis(can_do_job=False, score=30), broad=True, min_score=60
+        )
+
+        assert decision.skip_reason == SkipReason.LOW_SCORE
