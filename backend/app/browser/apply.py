@@ -96,7 +96,11 @@ async def open_form(page: "Page") -> ApplyForm:
         # Окно HH без формы — предупреждение вроде «вакансия в другой стране,
         # скорее всего будет отказ». Соглашаться за пользователя бот не вправе
         dialog_text = (await page.locator(HH.DIALOG).first.inner_text()).strip()
-        await page.keyboard.press("Escape")
+        abort = page.locator(HH.WARNING_ABORT).first
+        if await abort.count() and await abort.is_visible():
+            await abort.click()
+        else:
+            await page.keyboard.press("Escape")
         return ApplyForm(
             can_apply=False,
             blocked_reason="HH предупредил: " + " ".join(dialog_text.split())[:200],

@@ -87,7 +87,10 @@ class HH:
     # Поле письма под «Резюме доставлено» имеет тот же data-qa, что и в форме,
     # а отправляется своей кнопкой
     LETTER_SUBMIT_AFTER_APPLY: Final = '[data-qa="vacancy-response-letter-submit"]'
-    DIALOG: Final = '[role="dialog"]:visible'
+    # Предупреждения HH при отклике («вакансия в другой стране») — magritte-alert,
+    # без role=dialog
+    DIALOG: Final = '[role="dialog"]:visible, [data-qa="magritte-alert"]:visible'
+    WARNING_ABORT: Final = '[data-qa="relocation-warning-abort"]'
     APPLY_SUCCESS: Final = (
         f'[data-qa="vacancy-response-success"], [data-qa="chat-title"], {RESUME_DELIVERED}'
     )
