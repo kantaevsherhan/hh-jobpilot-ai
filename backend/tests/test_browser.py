@@ -130,9 +130,11 @@ class TestСверенныеСелекторы:
         assert HH.VACANCY_SCHEDULE == '[data-qa="work-schedule-by-days-text"]'
         assert HH.VACANCY_WORK_FORMAT == '[data-qa="work-formats-text"]'
 
-    def test_вопросы_работодателя_ищутся_по_началу_атрибута(self) -> None:
-        # Значение атрибута — два токена через пробел, точное совпадение не сработает
-        assert '[data-qa^="vacancy-response-question"]' in HH.QUESTION_ITEM
+    def test_виджет_вопросов_на_странице_не_путается_с_формой(self) -> None:
+        # vacancy-response-question_* — это «Задать вопрос работодателю» на каждой
+        # вакансии. Из-за него вакансии ошибочно уходили в «нужны данные»
+        assert "vacancy-response-question" not in HH.QUESTION_ITEM
+        assert "ответить на несколько вопросов" in HH.QUESTION_ITEM
 
 
 def test_формат_работы_читается_из_своего_узла() -> None:
