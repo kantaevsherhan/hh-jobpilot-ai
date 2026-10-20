@@ -87,7 +87,7 @@ async def write_letter(
 
     provider = await router.provider_for_step(session, PromptKey.LETTER)
     try:
-        return await call_with_min_length(provider, prompt, min_chars)
+        return await call_with_style_check(provider, prompt, min_chars)
     finally:
         await provider.close()
 
@@ -95,23 +95,43 @@ async def write_letter(
 # Небольшой недобор не стоит лишнего вызова модели: 390 символов при минимуме 400 — норма
 SHORT_TOLERANCE = 0.8
 
+# Двоеточие вне ссылок: «https://» и время «10:30» не считаются
+_COLON = re.compile(r":(?!//)(?!\d)")
 
-async def call_with_min_length(
+
+def style_problems(letter: str, min_chars: int) -> list[str]:
+    """Что в письме нарушает правила, которые модели упорно игнорируют.
+
+    Длину маленькие модели не держат, двоеточие ставят по привычке даже под запретом.
+    """
+    problems = []
+    if len(letter) < min_chars * SHORT_TOLERANCE:
+        problems.append(
+            f"письмо слишком короткое, {len(letter)} символов, а нужно не меньше "
+            f"{min_chars}. Раскрой главный факт и связь с задачами вакансии"
+        )
+    if _COLON.search(letter):
+        problems.append("в письме есть двоеточие, а его быть не должно. Перестрой эти фразы")
+    return problems
+
+
+async def call_with_style_check(
     provider: LLMProvider, prompt: str, min_chars: int
 ) -> tuple[LetterResponse, LLMResult]:
-    """Маленькие локальные модели игнорируют длину и пишут по 250 символов.
-    Одна повторная попытка с явным указанием почти всегда это чинит."""
+    """Одна повторная попытка с перечнем нарушений почти всегда их чинит."""
     letter, result = await router.call(provider, prompt, LetterResponse)
-    if len(letter.letter) >= min_chars * SHORT_TOLERANCE:
+    problems = style_problems(letter.letter, min_chars)
+    if not problems:
         return letter, result
 
     retry_prompt = (
-        f"{prompt}\n\nПРЕДЫДУЩИЙ ВАРИАНТ СЛИШКОМ КОРОТКИЙ: {len(letter.letter)} символов, "
-        f"а нужно не меньше {min_chars}. Перепиши его длиннее: раскрой главный факт и "
-        f"связь с задачами вакансии, ничего не выдумывая.\n\n{letter.letter}"
+        f"{prompt}\n\nПЕРЕПИШИ ПРЕДЫДУЩИЙ ВАРИАНТ, ничего не выдумывая. Что не так. "
+        + ". ".join(problems)
+        + f".\n\n{letter.letter}"
     )
-    longer, longer_result = await router.call(provider, retry_prompt, LetterResponse)
-    # Второй вариант бывает ещё короче — тогда оставляем первый
-    if len(longer.letter) > len(letter.letter):
-        return longer, longer_result
+    fixed, fixed_result = await router.call(provider, retry_prompt, LetterResponse)
+    # Повтор бывает хуже первого варианта — тогда оставляем первый
+    before, after = len(problems), len(style_problems(fixed.letter, min_chars))
+    if after < before or (after == before and len(fixed.letter) > len(letter.letter)):
+        return fixed, fixed_result
     return letter, result

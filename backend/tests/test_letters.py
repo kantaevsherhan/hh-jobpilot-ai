@@ -3,10 +3,11 @@
 from app.core.personal_data import find_personal_data_request, is_allowed_field
 from app.llm.steps.fact_check import dictionary_check, find_placeholders
 from app.llm.steps.letter import (
-    call_with_min_length,
+    call_with_style_check,
     check_instructions_followed,
     pick_language,
     required_words,
+    style_problems,
 )
 from tests.fakes import FakeProvider
 
@@ -164,23 +165,23 @@ class TestДлинаПисьма:
     async def test_короткое_письмо_переписывается_один_раз(self) -> None:
         provider = FakeProvider({"letter": "Коротко."}, {"letter": "Длиннее " * 60})
 
-        letter, _ = await call_with_min_length(provider, "промпт", min_chars=400)
+        letter, _ = await call_with_style_check(provider, "промпт", min_chars=400)
 
         assert len(letter.letter) >= 400
         assert len(provider.prompts) == 2
-        assert "СЛИШКОМ КОРОТКИЙ" in provider.prompts[1]
+        assert "слишком короткое" in provider.prompts[1]
 
     async def test_письмо_нормальной_длины_не_переписывается(self) -> None:
         provider = FakeProvider({"letter": "а" * 390})
 
-        await call_with_min_length(provider, "промпт", min_chars=400)
+        await call_with_style_check(provider, "промпт", min_chars=400)
 
         assert len(provider.prompts) == 1
 
     async def test_если_повтор_ещё_короче_остаётся_первый_вариант(self) -> None:
         provider = FakeProvider({"letter": "Первый вариант."}, {"letter": "Ещё."})
 
-        letter, _ = await call_with_min_length(provider, "промпт", min_chars=400)
+        letter, _ = await call_with_style_check(provider, "промпт", min_chars=400)
 
         assert letter.letter == "Первый вариант."
 
@@ -196,3 +197,22 @@ class TestЗаглушки:
 
     def test_письмо_без_скобок_чистое(self) -> None:
         assert find_placeholders("Готов созвониться на этой неделе.") == []
+
+
+class TestДвоеточие:
+    def test_двоеточие_в_тексте_это_нарушение(self) -> None:
+        assert style_problems("Мой стек: Vue и Node. " * 30, min_chars=400)
+
+    def test_ссылки_и_время_не_считаются(self) -> None:
+        letter = "Код на GitHub https://github.com/name, созвон после 10:30. " * 10
+
+        assert style_problems(letter, min_chars=400) == []
+
+    async def test_письмо_с_двоеточием_переписывается(self) -> None:
+        clean = "Здравствуйте! Пишу на Vue и Node. " * 15
+        provider = FakeProvider({"letter": "Здравствуйте! Мой стек: Vue. " * 20}, {"letter": clean})
+
+        letter, _ = await call_with_style_check(provider, "промпт", min_chars=400)
+
+        assert letter.letter == clean
+        assert "двоеточие" in provider.prompts[1]
