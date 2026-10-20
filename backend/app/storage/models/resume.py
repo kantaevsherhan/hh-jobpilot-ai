@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.enums import RemoteMode
@@ -95,6 +95,10 @@ class SearchProfile(Base, TimestampMixin):
     include_keywords: Mapped[list[Any]] = mapped_column(default=list)
     exclude_keywords: Mapped[list[Any]] = mapped_column(default=list)
     max_vacancies_per_run: Mapped[int] = mapped_column(Integer, default=25)
+    # Лента «Для вас» на HH — подбор вакансий под резюме. Её хватает и без запросов
+    use_recommendations: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false()
+    )
 
     queries: Mapped[list["SearchQuery"]] = relationship(
         back_populates="profile", cascade="all, delete-orphan", lazy="selectin"

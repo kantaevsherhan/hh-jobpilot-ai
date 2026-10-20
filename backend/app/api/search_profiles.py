@@ -36,6 +36,7 @@ class ProfileIn(BaseModel):
     include_keywords: list[str] = Field(default_factory=list)
     exclude_keywords: list[str] = Field(default_factory=list)
     max_vacancies_per_run: int = Field(default=25, ge=1, le=500)
+    use_recommendations: bool = False
 
 
 class ProfilePatch(BaseModel):
@@ -53,6 +54,7 @@ class ProfilePatch(BaseModel):
     include_keywords: list[str] | None = None
     exclude_keywords: list[str] | None = None
     max_vacancies_per_run: int | None = Field(default=None, ge=1, le=500)
+    use_recommendations: bool | None = None
 
 
 class ProfileOut(BaseModel):
@@ -73,6 +75,7 @@ class ProfileOut(BaseModel):
     include_keywords: list[Any]
     exclude_keywords: list[Any]
     max_vacancies_per_run: int
+    use_recommendations: bool
     queries: list[QueryOut]
 
 

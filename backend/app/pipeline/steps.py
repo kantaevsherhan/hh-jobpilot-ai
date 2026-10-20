@@ -48,23 +48,48 @@ async def run_search(
     queued = 0
     limit = profile.max_vacancies_per_run
 
-    for query in profile.queries:
+    filters: dict[str, Any] = {
+        "areas": [str(a) for a in profile.areas],
+        "experience": [str(e) for e in profile.experience_levels],
+        "remote_mode": profile.remote_mode,
+        "max_age_days": profile.max_age_days,
+    }
+    targets = [
+        (f"«{query.text}»", search_page.build_url(query.text, **filters))
+        for query in profile.queries
+    ]
+    if profile.use_recommendations:
+        resume_hash = ctx.resume.hh_resume_id or search_page.resume_hash_from_url(
+            ctx.resume.hh_resume_url
+        )
+        if resume_hash:
+            # Рекомендации первыми: HH уже отобрал их под резюме
+            targets.insert(
+                0,
+                (
+                    "Рекомендации HH «Для вас»",
+                    search_page.build_url("", resume_hash=resume_hash, **filters),
+                ),
+            )
+        else:
+            await events.log_event(
+                session,
+                run.id,
+                "search_skipped",
+                "Рекомендации HH пропущены: в резюме нет ссылки на hh.kz",
+                level=EventLevel.WARNING,
+            )
+
+    for label, url in targets:
         if queued >= limit:
             break
 
-        url = search_page.build_url(
-            query.text,
-            areas=[str(a) for a in profile.areas],
-            experience=[str(e) for e in profile.experience_levels],
-            remote_mode=profile.remote_mode,
-            max_age_days=profile.max_age_days,
-        )
         await page.goto(url, wait_until="domcontentloaded", timeout=45_000)
         await ctx.delays.pause("page_load")
 
         items = await search_page.collect_page(page)
         await events.log_event(
-            session, run.id, "search", f"«{query.text}»: найдено {len(items)}", payload={"url": url}
+            session, run.id, "search", f"{label}: найдено {len(items)}", payload={"url": url}
         )
         _bump(run, "found", len(items))
 

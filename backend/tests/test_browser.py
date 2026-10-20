@@ -142,3 +142,32 @@ def test_формат_работы_читается_из_своего_узла()
     assert detect_work_format("Формат работы: гибрид", None) == "HYBRID"
     assert detect_work_format("Формат работы: на месте работодателя", None) == "OFFICE"
     assert detect_work_format(None, None) == "UNKNOWN"
+
+
+def test_лента_рекомендаций_ищет_по_резюме_без_текста() -> None:
+    from app.browser.search import build_url
+
+    url = build_url("", resume_hash="4b50d52eff0967434a0039ed1f7a7a43446b35", areas=["160"])
+
+    assert "resume=4b50d52eff0967434a0039ed1f7a7a43446b35" in url
+    assert "text=" not in url
+    assert "area=160" in url
+
+
+def test_обычный_поиск_не_меняется() -> None:
+    from app.browser.search import build_url
+
+    url = build_url("Vue разработчик")
+
+    assert "text=Vue" in url
+    assert "resume=" not in url
+
+
+def test_идентификатор_резюме_из_ссылки_hh() -> None:
+    from app.browser.search import resume_hash_from_url
+
+    url = "https://almaty.hh.kz/resume/4b50d52eff0967434a0039ed1f7a7a43446b35?hhtmFrom=profile"
+
+    assert resume_hash_from_url(url) == "4b50d52eff0967434a0039ed1f7a7a43446b35"
+    assert resume_hash_from_url(None) is None
+    assert resume_hash_from_url("https://hh.kz/vacancy/123") is None

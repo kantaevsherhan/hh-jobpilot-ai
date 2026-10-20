@@ -67,6 +67,7 @@ const form = reactive({
   exclude_keywords: [] as string[],
   excludeDraft: '',
   max_vacancies_per_run: 25,
+  use_recommendations: false,
   enabled: true,
   priority: 1
 })
@@ -101,6 +102,7 @@ function openNew() {
     exclude_keywords: [],
     excludeDraft: '',
     max_vacancies_per_run: 25,
+    use_recommendations: false,
     enabled: true,
     priority: 1
   })
@@ -126,6 +128,7 @@ function openEdit(profile: SearchProfile) {
     exclude_keywords: profile.exclude_keywords.map(String),
     excludeDraft: '',
     max_vacancies_per_run: profile.max_vacancies_per_run,
+    use_recommendations: profile.use_recommendations,
     enabled: profile.enabled,
     priority: profile.priority
   })
@@ -153,9 +156,11 @@ const {
   reset: resetErrors
 } = useFormErrors(() => ({
   name: form.name.trim() ? undefined : 'Укажите название профиля',
-  queries: form.queries.length
-    ? undefined
-    : 'Добавьте хотя бы один поисковый запрос: впишите его и нажмите Enter',
+  // Лента рекомендаций HH сама по себе источник вакансий, запросы тогда не обязательны
+  queries:
+    form.queries.length || form.use_recommendations
+      ? undefined
+      : 'Добавьте хотя бы один поисковый запрос или включите рекомендации HH',
   resume:
     ui.resumeId === null ? 'Выберите резюме в шапке — профиль привязывается к нему' : undefined
 }))
@@ -179,6 +184,7 @@ function submit() {
     include_keywords: form.include_keywords,
     exclude_keywords: form.exclude_keywords,
     max_vacancies_per_run: form.max_vacancies_per_run,
+    use_recommendations: form.use_recommendations,
     enabled: form.enabled,
     priority: form.priority
   }
@@ -280,6 +286,12 @@ const areaLabel = (codes: unknown[]) =>
             </div>
 
             <div class="mt-1.5 flex flex-wrap gap-1.5">
+              <span
+                v-if="profile.use_recommendations"
+                class="rounded-full bg-teal-700/10 px-2.5 py-0.5 text-[12px] text-teal-900"
+              >
+                Рекомендации HH «Для вас»
+              </span>
               <span
                 v-for="query in profile.queries"
                 :key="query.id"
@@ -476,6 +488,17 @@ const areaLabel = (codes: unknown[]) =>
           <ToggleSwitch v-model="form.allow_unknown_salary" />
           Учитывать вакансии без указанной зарплаты
         </label>
+
+        <div>
+          <label class="flex items-center gap-2 text-[13px] text-slate-700">
+            <ToggleSwitch v-model="form.use_recommendations" />
+            Брать вакансии из рекомендаций HH «Для вас»
+          </label>
+          <p class="mt-1 pl-12 text-[12px] text-slate-500">
+            Лента, которую HH подбирает под ваше резюме. Нужна ссылка на резюме hh.kz в разделе «Мои
+            резюме». Фильтры профиля применяются и к ней.
+          </p>
+        </div>
 
         <div>
           <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Стоп-слова</label>

@@ -1,5 +1,6 @@
 """Выдача поиска HH: список hh_id и минимум полей, без открытия карточек (§10)."""
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from urllib.parse import urlencode
@@ -42,14 +43,20 @@ def build_url(
     remote_mode: str = RemoteMode.ANY,
     max_age_days: int | None = None,
     page: int = 0,
+    resume_hash: str | None = None,
 ) -> str:
     """Собрать адрес выдачи. Часть условий отдаём HH, чтобы не тащить
-    к себе то, что он и так умеет отфильтровать."""
-    params: list[tuple[str, str]] = [
-        ("text", query),
-        ("page", str(page)),
-        ("items_on_page", "50"),
-    ]
+    к себе то, что он и так умеет отфильтровать.
+
+    С resume_hash это лента «Для вас» — рекомендации HH под резюме; текст
+    запроса тогда не нужен.
+    """
+    params: list[tuple[str, str]] = []
+    if resume_hash:
+        params.append(("resume", resume_hash))
+    if query or not resume_hash:
+        params.append(("text", query))
+    params += [("page", str(page)), ("items_on_page", "50")]
     for area in areas or []:
         params.append(("area", area))
     for level in experience or []:
@@ -60,6 +67,15 @@ def build_url(
         params.append(("schedule", "remote"))
 
     return f"{HH.SEARCH_URL}?{urlencode(params)}"
+
+
+_RESUME_HASH = re.compile(r"/resume/([0-9a-f]{20,})")
+
+
+def resume_hash_from_url(url: str | None) -> str | None:
+    """Идентификатор резюме из ссылки вида hh.kz/resume/4b50d52e…?hhtmFrom=…"""
+    match = _RESUME_HASH.search(url or "")
+    return match.group(1) if match else None
 
 
 async def collect_page(page: "Page") -> list[SearchItem]:

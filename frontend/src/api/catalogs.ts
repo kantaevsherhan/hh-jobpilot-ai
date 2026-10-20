@@ -19,6 +19,7 @@ export const searchProfileSchema = z.object({
   include_keywords: z.array(z.unknown()),
   exclude_keywords: z.array(z.unknown()),
   max_vacancies_per_run: z.number(),
+  use_recommendations: z.boolean().default(false),
   queries: z.array(z.object({ id: z.number(), text: z.string() }))
 })
 
