@@ -36,6 +36,10 @@ from app.storage.repositories import vacancies as vacancy_repo
 
 log = get_logger(__name__)
 
+# Дальше 10-й страницы HH выдаёт то, что подходит всё хуже; лимит профиля обычно
+# набирается раньше
+MAX_SEARCH_PAGES = 10
+
 
 async def run_search(
     session: AsyncSession, run: Run, ctx: RunContext, payload: dict[str, Any]
@@ -54,9 +58,8 @@ async def run_search(
         "remote_mode": profile.remote_mode,
         "max_age_days": profile.max_age_days,
     }
-    targets = [
-        (f"«{query.text}»", search_page.build_url(query.text, **filters))
-        for query in profile.queries
+    targets: list[tuple[str, dict[str, Any]]] = [
+        (f"«{query.text}»", {"query": query.text, **filters}) for query in profile.queries
     ]
     if profile.use_recommendations:
         resume_hash = ctx.resume.hh_resume_id or search_page.resume_hash_from_url(
@@ -66,10 +69,7 @@ async def run_search(
             # Рекомендации первыми: HH уже отобрал их под резюме
             targets.insert(
                 0,
-                (
-                    "Рекомендации HH «Для вас»",
-                    search_page.build_url("", resume_hash=resume_hash, **filters),
-                ),
+                ("Рекомендации HH «Для вас»", {"query": "", "resume_hash": resume_hash, **filters}),
             )
         else:
             await events.log_event(
@@ -80,18 +80,35 @@ async def run_search(
                 level=EventLevel.WARNING,
             )
 
-    for label, url in targets:
+    # Страницы выдачи: первая часто целиком из уже знакомых вакансий, а лента
+    # «Для вас» — это сотни вакансий. Обход идёт, пока не набран лимит профиля
+    pages = [
+        (label, params, number) for label, params in targets for number in range(MAX_SEARCH_PAGES)
+    ]
+    exhausted: set[str] = set()
+
+    for label, params, page_number in pages:
         if queued >= limit:
             break
+        if label in exhausted:
+            continue
 
+        url = search_page.build_url(**params, page=page_number)
         await page.goto(url, wait_until="domcontentloaded", timeout=45_000)
         await ctx.delays.pause("page_load")
 
         items = await search_page.collect_page(page)
         await events.log_event(
-            session, run.id, "search", f"{label}: найдено {len(items)}", payload={"url": url}
+            session,
+            run.id,
+            "search",
+            f"{label}, стр. {page_number + 1}: найдено {len(items)}",
+            payload={"url": url},
         )
         _bump(run, "found", len(items))
+        if not items:
+            exhausted.add(label)
+            continue
 
         known = await vacancy_repo.known_hh_ids(session, [item.hh_id for item in items])
 
