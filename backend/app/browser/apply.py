@@ -69,7 +69,7 @@ async def open_form(page: "Page") -> ApplyForm:
     await page.wait_for_load_state("domcontentloaded")
     try:
         await page.wait_for_selector(
-            f"{HH.SUBMIT_BUTTON}, {HH.RESUME_DELIVERED}, {HH.HIDDEN_RESUME_WARNING}",
+            f"{HH.SUBMIT_BUTTON}, {HH.RESUME_DELIVERED}, {HH.DIALOG}",
             timeout=20_000,
             state="visible",
         )
@@ -80,11 +80,26 @@ async def open_form(page: "Page") -> ApplyForm:
             step="OPEN_APPLY_FORM",
             technical_details=f"{page.url}\n{exc}",
         ) from exc
+    # Окно появляется раньше своего содержимого: без паузы форма отклика
+    # в окне выглядела бы как предупреждение без кнопки отправки
+    await page.wait_for_timeout(1500)
 
-    if await page.locator(HH.HIDDEN_RESUME_WARNING).count():
+    warning = page.locator(HH.HIDDEN_RESUME_WARNING).first
+    if await warning.count() and await warning.is_visible():
         return ApplyForm(
             can_apply=False,
             blocked_reason="Резюме скрыто от этого работодателя: поменяйте видимость резюме на HH",
+        )
+
+    submit_visible = await page.locator(HH.SUBMIT_BUTTON).first.is_visible()
+    if not submit_visible and not await page.locator(HH.RESUME_DELIVERED).count():
+        # Окно HH без формы — предупреждение вроде «вакансия в другой стране,
+        # скорее всего будет отказ». Соглашаться за пользователя бот не вправе
+        dialog_text = (await page.locator(HH.DIALOG).first.inner_text()).strip()
+        await page.keyboard.press("Escape")
+        return ApplyForm(
+            can_apply=False,
+            blocked_reason="HH предупредил: " + " ".join(dialog_text.split())[:200],
         )
 
     if not await page.locator(HH.SUBMIT_BUTTON).count():
