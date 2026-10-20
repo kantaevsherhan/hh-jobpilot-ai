@@ -11,7 +11,7 @@ from app.api.deps import Session
 from app.browser import apply as apply_page
 from app.browser import vacancy as vacancy_page
 from app.browser.manager import browser
-from app.core.enums import RuntimeMode, VacancyStatus
+from app.core.enums import ErrorCode, RuntimeMode, VacancyStatus
 from app.core.errors import ConflictError
 from app.pipeline import applying
 from app.pipeline.delays import Delays
@@ -171,3 +171,48 @@ async def sync_statuses(session: Session, days: int = 60) -> dict[str, int]:
     отдельная задача прогона. Здесь — пересчёт по базе (§23)."""
     rows = await applying.stale_applications(session, days)
     return {"checked": len(rows)}
+
+
+class SendLetterRequest(BaseModel):
+    resume_id: int
+    letter_id: int
+
+
+@router.post(
+    "/vacancies/{vacancy_id}/send-letter", summary="Дослать письмо к отправленному отклику"
+)
+async def send_letter(
+    vacancy_id: int, payload: SendLetterRequest, session: Session
+) -> dict[str, Any]:
+    """Быстрый отклик HH уходит без письма; письмо досылается в поле под ним."""
+    application = await session.scalar(
+        select(Application).where(Application.vacancy_id == vacancy_id)
+    )
+    if application is None:
+        raise ConflictError("NO_APPLICATION", "Отклика на эту вакансию ещё не было")
+    letter = await crud.get_or_404(session, Letter, payload.letter_id, "Письмо")
+    if letter.fact_check_passed is False:
+        raise ConflictError("FACT_CHECK_FAILED", "Письмо не прошло проверку фактов")
+    vacancy = await crud.get_or_404(session, Vacancy, vacancy_id, "Вакансия")
+    if not browser.is_running:
+        raise ConflictError(
+            "BROWSER_NOT_STARTED", "Браузер не запущен. Откройте «Настройки → Браузер»."
+        )
+
+    delays = Delays((await settings_repo.get_all(session)).get("delays"))
+    page = await browser.page()
+    await page.goto(vacancy_page.vacancy_url(vacancy.hh_id), wait_until="domcontentloaded")
+    await delays.pause("page_load")
+
+    sent = await applying.send_letter_after(page, letter.content, delays=delays)
+    if sent is None:
+        raise ConflictError(
+            "LETTER_FIELD_NOT_FOUND", "Поля для письма нет: возможно, письмо уже отправлено"
+        )
+    application.letter_id = letter.id
+    application.error_code = None if sent else ErrorCode.LETTER_STATE_UNKNOWN
+    await session.commit()
+    return {
+        "letter_sent": sent,
+        "message": "Письмо отправлено" if sent else "Письмо отправлено без подтверждения",
+    }

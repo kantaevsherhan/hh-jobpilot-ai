@@ -255,3 +255,14 @@ async def test_форма_с_вопросами_не_отправляется(mo
     assert result.sent is False
     assert result.needs_data is True
     assert "submit" not in calls
+
+
+async def test_дослать_письмо_без_отклика_нельзя(client, session: AsyncSession) -> None:
+    resume_id, vacancy_id = await setup_pair(session)
+
+    response = await client.post(
+        f"/api/v1/vacancies/{vacancy_id}/send-letter",
+        json={"resume_id": resume_id, "letter_id": 1},
+    )
+
+    assert response.status_code == 409

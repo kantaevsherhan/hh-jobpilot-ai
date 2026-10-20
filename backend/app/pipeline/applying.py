@@ -213,6 +213,23 @@ async def send_application(
     )
 
 
+async def send_letter_after(page: "Page", letter: str, *, delays: "Delays") -> bool | None:
+    """Дослать письмо к уже отправленному отклику.
+
+    None — поля для письма на странице нет (письмо уже отправлено или HH его не
+    принимает). True/False — отправлено с подтверждением или без.
+    """
+    from app.browser import apply as apply_page
+    from app.browser.selectors import HH
+
+    await apply_page.dismiss_dialogs(page)
+    if not await page.locator(HH.LETTER_SUBMIT_AFTER_APPLY).count():
+        return None
+    await apply_page.type_letter(page, letter, delays.seconds("typing_per_char") * 1000)
+    await delays.pause("before_submit")
+    return await apply_page.send_letter_after_apply(page)
+
+
 def result_message(result: SendResult) -> str:
     """Что сказать человеку об исходе отклика."""
     if result.sent is None:
