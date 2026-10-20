@@ -19,6 +19,8 @@ from app.storage.models.base import utcnow
 if TYPE_CHECKING:
     from playwright.async_api import Page
 
+    from app.pipeline.delays import Delays
+
 log = get_logger(__name__)
 
 
@@ -145,6 +147,81 @@ async def stale_applications(session: AsyncSession, days: int = 60) -> list[Appl
         select(Application).where(Application.applied_at >= since).order_by(Application.id)
     )
     return list(rows.all())
+
+
+@dataclass(frozen=True, slots=True)
+class SendResult:
+    """Что произошло после нажатия «Откликнуться».
+
+    sent: True — резюме доставлено, None — неизвестно, False — отклик не уходил.
+    """
+
+    sent: bool | None
+    error_code: str | None = None
+    letter_sent: bool = False
+    needs_data: bool = False
+
+
+async def send_application(
+    page: "Page",
+    hh_id: str,
+    letter: str | None,
+    *,
+    delays: "Delays",
+) -> SendResult:
+    """Отклик на открытой странице вакансии — с формой или быстрый.
+
+    Быстрый отклик HH отправляет резюме сразу по кнопке, письмо досылается после.
+    Поэтому всё, что идёт после доставки резюме, не бросает исключений: иначе
+    отправленный отклик не запишется в базу и защита от дублей его не увидит.
+    """
+    from app.browser import apply as apply_page
+
+    typing_delay = delays.seconds("typing_per_char") * 1000
+    form = await apply_page.open_form(page)
+
+    if form.sent_on_click:
+        if not letter:
+            return SendResult(sent=True)
+        try:
+            await apply_page.dismiss_dialogs(page)
+            await apply_page.type_letter(page, letter, typing_delay)
+            await delays.pause("before_submit")
+            letter_ok = await apply_page.send_letter_after_apply(page)
+        except Exception as exc:
+            log.warning("Резюме на %s доставлено, письмо не отправилось: %s", hh_id, exc)
+            return SendResult(sent=True, error_code=ErrorCode.LETTER_NOT_SENT)
+        return SendResult(
+            sent=True,
+            error_code=None if letter_ok else ErrorCode.LETTER_STATE_UNKNOWN,
+            letter_sent=letter_ok,
+        )
+
+    if form.questions:
+        return SendResult(sent=False, needs_data=True)
+
+    # Ошибка ввода здесь безопасна: кнопка отправки формы ещё не нажата
+    if form.has_letter_field and letter:
+        await apply_page.type_letter(page, letter, typing_delay)
+
+    await delays.pause("before_submit")
+    ok, error_code = await submit_on_page(page, hh_id)
+    return SendResult(
+        sent=True if ok else None,
+        error_code=error_code,
+        letter_sent=ok and bool(letter) and form.has_letter_field,
+    )
+
+
+def result_message(result: SendResult) -> str:
+    """Что сказать человеку об исходе отклика."""
+    if result.sent is None:
+        return "Подтверждение не получено, проверьте вручную"
+    if result.error_code == ErrorCode.LETTER_NOT_SENT:
+        return "Резюме доставлено, но письмо не отправилось — напишите его в чате с работодателем"
+    if result.error_code == ErrorCode.LETTER_STATE_UNKNOWN:
+        return "Резюме доставлено, письмо отправлено без подтверждения — проверьте чат"
+    return "Отклик отправлен"
 
 
 async def submit_on_page(page: "Page", hh_id: str) -> tuple[bool, str | None]:

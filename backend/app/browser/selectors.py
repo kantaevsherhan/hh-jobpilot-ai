@@ -84,6 +84,10 @@ class HH:
         '[data-qa="vacancy-response-popup-form-letter-input"], textarea[name="letter"]'
     )
     SUBMIT_BUTTON: Final = '[data-qa="vacancy-response-submit-popup"]'
+    # Поле письма под «Резюме доставлено» имеет тот же data-qa, что и в форме,
+    # а отправляется своей кнопкой
+    LETTER_SUBMIT_AFTER_APPLY: Final = '[data-qa="vacancy-response-letter-submit"]'
+    DIALOG: Final = '[role="dialog"]:visible'
     APPLY_SUCCESS: Final = (
         f'[data-qa="vacancy-response-success"], [data-qa="chat-title"], {RESUME_DELIVERED}'
     )

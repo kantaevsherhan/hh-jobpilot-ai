@@ -464,9 +464,11 @@ async def apply(session: AsyncSession, run: Run, ctx: RunContext, payload: dict[
         return
 
     await ctx.delays.pause("before_open_form")
-    form = await apply_page.open_form(page)
+    result = await applying.send_application(
+        page, vacancy.hh_id, letter_row.content if letter_row else None, delays=ctx.delays
+    )
 
-    if form.questions:
+    if result.needs_data:
         await vacancy_repo.ensure_decision(
             session,
             ctx.resume.id,
@@ -476,13 +478,7 @@ async def apply(session: AsyncSession, run: Run, ctx: RunContext, payload: dict[
         )
         return
 
-    if form.has_letter_field and letter_row:
-        typing_delay = ctx.delays.seconds("typing_per_char") * 1000
-        await apply_page.type_letter(page, letter_row.content, typing_delay)
-
-    await ctx.delays.pause("before_submit")
-    ok, error_code = await applying.submit_on_page(page, vacancy.hh_id)
-
+    ok = bool(result.sent)
     await applying.record_application(
         session,
         vacancy_id=vacancy_id,
@@ -490,7 +486,7 @@ async def apply(session: AsyncSession, run: Run, ctx: RunContext, payload: dict[
         letter_id=letter_row.id if letter_row else None,
         run_id=run.id,
         hh_status="SENT" if ok else None,
-        error_code=error_code,
+        error_code=result.error_code,
     )
     await vacancy_repo.ensure_decision(
         session,
@@ -504,7 +500,7 @@ async def apply(session: AsyncSession, run: Run, ctx: RunContext, payload: dict[
         session,
         run.id,
         "applied" if ok else "apply_unknown",
-        f"{vacancy.title}: {'отклик отправлен' if ok else 'состояние отклика неизвестно'}",
+        f"{vacancy.title}: {applying.result_message(result)}",
         level=EventLevel.INFO if ok else EventLevel.WARNING,
         resume_vacancy_id=decision_row.id,
     )

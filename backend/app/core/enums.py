@@ -132,6 +132,8 @@ class ErrorCode(StrEnum):
     FACT_CHECK_FAILED = "FACT_CHECK_FAILED"
     APPLY_FORM_UNKNOWN = "APPLY_FORM_UNKNOWN"
     APPLICATION_STATE_UNKNOWN = "APPLICATION_STATE_UNKNOWN"
+    LETTER_NOT_SENT = "LETTER_NOT_SENT"
+    LETTER_STATE_UNKNOWN = "LETTER_STATE_UNKNOWN"
     LIMIT_REACHED = "LIMIT_REACHED"
     PERSONAL_DATA_REQUESTED = "PERSONAL_DATA_REQUESTED"
 
@@ -150,6 +152,8 @@ ERROR_CODE_LABELS: dict[str, str] = {
     ErrorCode.FACT_CHECK_FAILED: "Проверка фактов не пройдена",
     ErrorCode.APPLY_FORM_UNKNOWN: "Форма отклика не распознана",
     ErrorCode.APPLICATION_STATE_UNKNOWN: "Состояние отклика неизвестно",
+    ErrorCode.LETTER_NOT_SENT: "Резюме доставлено, но письмо отправить не удалось",
+    ErrorCode.LETTER_STATE_UNKNOWN: "Резюме доставлено, письмо отправлено без подтверждения",
     ErrorCode.LIMIT_REACHED: "Достигнут лимит откликов",
     ErrorCode.PERSONAL_DATA_REQUESTED: "Запрошены личные данные",
 }

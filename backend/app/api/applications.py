@@ -122,40 +122,47 @@ async def apply_manually(
         )
         return {"status": VacancyStatus.EXTERNAL_APPLY.value, "message": "Отклик на внешнем сайте"}
 
-    await delays.pause("before_open_form")
-    form = await apply_page.open_form(page)
-
-    if form.has_letter_field and letter:
-        await apply_page.type_letter(page, letter.content, delays.seconds("typing_per_char") * 1000)
-
-    # DRY_RUN доходит до формы и останавливается: кнопка не нажимается (§20)
+    # DRY_RUN останавливается до кнопки «Откликнуться»: на многих вакансиях HH
+    # отправляет резюме прямо по ней, без формы, и «пробный» отклик ушёл бы (§20)
     if payload.runtime_mode != RuntimeMode.LIVE:
         await repo.ensure_decision(
             session, resume.id, vacancy_id, status=VacancyStatus.APPLY_PREPARED.value
         )
         return {
             "status": VacancyStatus.APPLY_PREPARED.value,
-            "message": "Форма заполнена в пробном режиме. Отклик не отправлен",
+            "message": "Пробный режим: вакансия открыта, кнопка «Откликнуться» не нажималась",
         }
 
-    await delays.pause("before_submit")
-    ok, error_code = await applying.submit_on_page(page, vacancy.hh_id)
+    await delays.pause("before_open_form")
+    result = await applying.send_application(
+        page, vacancy.hh_id, letter.content if letter else None, delays=delays
+    )
+
+    if result.needs_data:
+        await repo.ensure_decision(
+            session,
+            resume.id,
+            vacancy_id,
+            status=VacancyStatus.NEEDS_DATA.value,
+            skip_details="В форме есть вопросы работодателя",
+        )
+        return {
+            "status": VacancyStatus.NEEDS_DATA.value,
+            "message": "В форме есть вопросы работодателя — отклик не отправлен",
+        }
 
     await applying.record_application(
         session,
         vacancy_id=vacancy_id,
         resume_id=resume.id,
         letter_id=letter.id if letter else None,
-        hh_status="SENT" if ok else None,
-        error_code=error_code,
+        hh_status="SENT" if result.sent else None,
+        error_code=result.error_code,
     )
-    status = VacancyStatus.APPLIED if ok else VacancyStatus.APPLY_UNKNOWN
+    status = VacancyStatus.APPLIED if result.sent else VacancyStatus.APPLY_UNKNOWN
     await repo.ensure_decision(session, resume.id, vacancy_id, status=status.value)
 
-    return {
-        "status": status.value,
-        "message": "Отклик отправлен" if ok else "Подтверждение не получено, проверьте вручную",
-    }
+    return {"status": status.value, "message": applying.result_message(result)}
 
 
 @router.post("/applications/sync-status", summary="Обновить статусы откликов")

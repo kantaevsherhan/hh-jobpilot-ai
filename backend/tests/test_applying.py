@@ -164,3 +164,94 @@ def test_письмо_в_поле_сверяется_с_исходным() -> No
     assert letters_match("Здравствуйте!\n\nТекст", "Здравствуйте!\r\n\r\nТекст ")
     # Черновик HH, к которому допечатали письмо, — это несовпадение, отправлять нельзя
     assert not letters_match("Здравствуйте!", "Старый черновикЗдравствуйте!")
+
+
+class _NoDelays:
+    """Задержки в тестах не ждут."""
+
+    def seconds(self, _key: str) -> float:
+        return 0.0
+
+    async def pause(self, _key: str) -> float:
+        return 0.0
+
+
+def _patch_page(
+    monkeypatch, form, *, letter_error: Exception | None = None, letter_ok: bool = True
+):
+    from app.browser import apply as apply_page
+
+    calls: list[str] = []
+
+    async def open_form(_page):
+        calls.append("open_form")
+        return form
+
+    async def dismiss_dialogs(_page):
+        calls.append("dismiss")
+
+    async def type_letter(_page, _letter, _delay):
+        calls.append("type")
+        if letter_error:
+            raise letter_error
+
+    async def send_letter_after_apply(_page):
+        calls.append("send_letter")
+        return letter_ok
+
+    async def submit(_page):
+        calls.append("submit")
+        return True
+
+    for name, fn in {
+        "open_form": open_form,
+        "dismiss_dialogs": dismiss_dialogs,
+        "type_letter": type_letter,
+        "send_letter_after_apply": send_letter_after_apply,
+        "submit": submit,
+    }.items():
+        monkeypatch.setattr(apply_page, name, fn)
+    return calls
+
+
+async def test_быстрый_отклик_засчитан_даже_если_письмо_упало(monkeypatch) -> None:
+    from app.browser.apply import ApplyForm
+    from app.core.enums import ErrorCode
+    from app.pipeline.applying import send_application
+
+    calls = _patch_page(
+        monkeypatch, ApplyForm(can_apply=True, sent_on_click=True), letter_error=TimeoutError()
+    )
+
+    result = await send_application(None, "1", "Здравствуйте!", delays=_NoDelays())
+
+    # Резюме уже ушло — отклик должен записаться, иначе возможен второй отклик
+    assert result.sent is True
+    assert result.error_code == ErrorCode.LETTER_NOT_SENT
+    assert "submit" not in calls
+
+
+async def test_быстрый_отклик_досылает_письмо(monkeypatch) -> None:
+    from app.browser.apply import ApplyForm
+    from app.pipeline.applying import send_application
+
+    calls = _patch_page(monkeypatch, ApplyForm(can_apply=True, sent_on_click=True))
+
+    result = await send_application(None, "1", "Здравствуйте!", delays=_NoDelays())
+
+    assert result.sent is True
+    assert result.letter_sent is True
+    assert calls == ["open_form", "dismiss", "type", "send_letter"]
+
+
+async def test_форма_с_вопросами_не_отправляется(monkeypatch) -> None:
+    from app.browser.apply import ApplyForm
+    from app.pipeline.applying import send_application
+
+    calls = _patch_page(monkeypatch, ApplyForm(can_apply=True, questions=["Ваша зарплата?"]))
+
+    result = await send_application(None, "1", "Здравствуйте!", delays=_NoDelays())
+
+    assert result.sent is False
+    assert result.needs_data is True
+    assert "submit" not in calls

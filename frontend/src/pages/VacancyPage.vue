@@ -194,7 +194,7 @@ const factCheckFailed = computed(() => selectedLetter.value?.fact_check_passed =
           size="small"
           severity="secondary"
           outlined
-          label="Проверить форму без отправки"
+          label="Открыть на hh без отклика"
           :loading="applying"
           :disabled="alreadyApplied"
           @click="send('DRY_RUN')"

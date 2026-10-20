@@ -26,6 +26,9 @@ class ApplyForm:
     is_external: bool = False
     has_letter_field: bool = False
     questions: list[str] | None = None
+    # Быстрый отклик: HH отправил резюме по нажатию «Откликнуться», без формы.
+    # Письмо после этого можно только дослать отдельной кнопкой
+    sent_on_click: bool = False
 
 
 async def inspect(page: "Page", hh_id: str) -> ApplyForm:
@@ -62,7 +65,7 @@ async def open_form(page: "Page") -> ApplyForm:
     await button.click()
     try:
         await page.wait_for_selector(
-            f"{HH.LETTER_FIELD}, {HH.SUBMIT_BUTTON}", timeout=15_000, state="visible"
+            f"{HH.SUBMIT_BUTTON}, {HH.RESUME_DELIVERED}", timeout=15_000, state="visible"
         )
     except Exception as exc:
         raise AppError(
@@ -71,6 +74,10 @@ async def open_form(page: "Page") -> ApplyForm:
             step="OPEN_APPLY_FORM",
             technical_details=str(exc),
         ) from exc
+
+    if not await page.locator(HH.SUBMIT_BUTTON).count():
+        # Формы нет, а резюме уже доставлено — это быстрый отклик
+        return ApplyForm(can_apply=True, sent_on_click=True)
 
     questions = await _read_questions(page)
     return ApplyForm(
@@ -112,6 +119,42 @@ async def type_letter(page: "Page", letter: str, delay_per_char_ms: float) -> No
             step="TYPE_LETTER",
             technical_details=typed[:2000],
         )
+
+
+async def dismiss_dialogs(page: "Page") -> None:
+    """Закрыть всплывающие окна после быстрого отклика («Какой формат удобнее?»).
+
+    Escape закрывает опрос без ответа: настройки поиска в HH не меняются.
+    Первый Escape — безусловно: разметка опроса может и не быть role=dialog.
+    """
+    await page.keyboard.press("Escape")
+    await page.wait_for_timeout(500)
+    for _ in range(3):
+        if not await page.locator(HH.DIALOG).count():
+            return
+        await page.keyboard.press("Escape")
+        await page.wait_for_timeout(500)
+
+
+async def send_letter_after_apply(page: "Page") -> bool:
+    """Отправить письмо, уже введённое в поле под «Резюме доставлено».
+
+    True — кнопка исчезла после нажатия, то есть HH письмо принял.
+    """
+    button = page.locator(HH.LETTER_SUBMIT_AFTER_APPLY).first
+    if not await button.count():
+        raise AppError(
+            "BROWSER_SELECTOR_NOT_FOUND",
+            "Кнопка отправки письма после отклика не найдена",
+            step="SEND_LETTER",
+        )
+    await button.click()
+    try:
+        await button.wait_for(state="hidden", timeout=15_000)
+    except Exception as exc:
+        log.warning("После отправки письма кнопка не исчезла: %s", exc)
+        return False
+    return True
 
 
 def typing_timeout_ms(chars: int, delay_per_char_ms: float) -> float:
