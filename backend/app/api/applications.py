@@ -144,11 +144,11 @@ async def apply_manually(
             resume.id,
             vacancy_id,
             status=VacancyStatus.NEEDS_DATA.value,
-            skip_details="В форме есть вопросы работодателя",
+            skip_details=result.detail,
         )
         return {
             "status": VacancyStatus.NEEDS_DATA.value,
-            "message": "В форме есть вопросы работодателя — отклик не отправлен",
+            "message": f"{result.detail} — отклик не отправлен",
         }
 
     await applying.record_application(

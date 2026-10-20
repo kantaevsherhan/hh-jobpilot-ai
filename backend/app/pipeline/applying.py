@@ -160,6 +160,8 @@ class SendResult:
     error_code: str | None = None
     letter_sent: bool = False
     needs_data: bool = False
+    # Почему отклик требует действий человека — уходит в skip_details
+    detail: str | None = None
 
 
 async def send_application(
@@ -197,8 +199,11 @@ async def send_application(
             letter_sent=letter_ok,
         )
 
+    if form.blocked_reason:
+        return SendResult(sent=False, needs_data=True, detail=form.blocked_reason)
+
     if form.questions:
-        return SendResult(sent=False, needs_data=True)
+        return SendResult(sent=False, needs_data=True, detail="В форме есть вопросы работодателя")
 
     # Ошибка ввода здесь безопасна: кнопка отправки формы ещё не нажата
     if form.has_letter_field and letter:

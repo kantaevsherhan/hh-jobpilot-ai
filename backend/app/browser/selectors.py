@@ -95,7 +95,15 @@ class HH:
     RESUME_SELECT: Final = '[data-qa="resume-select"]'
     # Атрибут содержит два токена через пробел («vacancy-response-question
     # vacancy-response-question_salary_options»), точное совпадение не сработает
-    QUESTION_ITEM: Final = '[data-qa^="vacancy-response-question"], [data-qa="task-body"]'
+    # На странице вакансии есть виджет «Задать вопрос работодателю» с data-qa
+    # vacancy-response-question_* — это не вопросы формы. Вопросы, без ответа на
+    # которые нельзя откликнуться, HH объявляет этим текстом над формой
+    QUESTION_ITEM: Final = (
+        '[data-qa="task-body"], :text("ответить на несколько вопросов работодателя")'
+    )
+    # Резюме скрыто от работодателя — отклик невозможен, пока пользователь сам
+    # не поменяет видимость резюме на HH
+    HIDDEN_RESUME_WARNING: Final = '[data-qa="hidden-resume-warning"]'
 
     # Отклики в личном кабинете
     NEGOTIATION_ITEM: Final = '[data-qa="negotiations-item"]'

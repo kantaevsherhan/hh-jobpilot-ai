@@ -266,3 +266,19 @@ async def test_дослать_письмо_без_отклика_нельзя(cl
     )
 
     assert response.status_code == 409
+
+
+async def test_скрытое_резюме_не_отправляется_и_объясняется(monkeypatch) -> None:
+    from app.browser.apply import ApplyForm
+    from app.pipeline.applying import send_application
+
+    calls = _patch_page(
+        monkeypatch, ApplyForm(can_apply=False, blocked_reason="Резюме скрыто от работодателя")
+    )
+
+    result = await send_application(None, "1", "Здравствуйте!", delays=_NoDelays())
+
+    assert result.sent is False
+    assert result.needs_data is True
+    assert result.detail == "Резюме скрыто от работодателя"
+    assert calls == ["open_form"]

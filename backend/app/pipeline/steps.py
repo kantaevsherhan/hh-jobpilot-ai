@@ -499,7 +499,7 @@ async def apply(session: AsyncSession, run: Run, ctx: RunContext, payload: dict[
             ctx.resume.id,
             vacancy_id,
             status=VacancyStatus.NEEDS_DATA.value,
-            skip_details="В форме есть вопросы работодателя",
+            skip_details=result.detail,
         )
         return
 

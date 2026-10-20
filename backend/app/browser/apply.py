@@ -29,6 +29,8 @@ class ApplyForm:
     # Быстрый отклик: HH отправил резюме по нажатию «Откликнуться», без формы.
     # Письмо после этого можно только дослать отдельной кнопкой
     sent_on_click: bool = False
+    # Отклик невозможен без действия пользователя на HH (например, скрытое резюме)
+    blocked_reason: str | None = None
 
 
 async def inspect(page: "Page", hh_id: str) -> ApplyForm:
@@ -63,17 +65,27 @@ async def open_form(page: "Page") -> ApplyForm:
         )
 
     await button.click()
+    # Кнопка — ссылка: иногда HH открывает не окно, а отдельную страницу отклика
+    await page.wait_for_load_state("domcontentloaded")
     try:
         await page.wait_for_selector(
-            f"{HH.SUBMIT_BUTTON}, {HH.RESUME_DELIVERED}", timeout=15_000, state="visible"
+            f"{HH.SUBMIT_BUTTON}, {HH.RESUME_DELIVERED}, {HH.HIDDEN_RESUME_WARNING}",
+            timeout=20_000,
+            state="visible",
         )
     except Exception as exc:
         raise AppError(
             "APPLY_FORM_UNKNOWN",
             "Форма отклика не распознана",
             step="OPEN_APPLY_FORM",
-            technical_details=str(exc),
+            technical_details=f"{page.url}\n{exc}",
         ) from exc
+
+    if await page.locator(HH.HIDDEN_RESUME_WARNING).count():
+        return ApplyForm(
+            can_apply=False,
+            blocked_reason="Резюме скрыто от этого работодателя: поменяйте видимость резюме на HH",
+        )
 
     if not await page.locator(HH.SUBMIT_BUTTON).count():
         # Формы нет, а резюме уже доставлено — это быстрый отклик
