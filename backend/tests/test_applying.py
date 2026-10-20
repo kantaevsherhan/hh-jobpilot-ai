@@ -306,3 +306,38 @@ async def test_пересматриваются_только_отклонённ�
     await record_application(session, vacancy_id=applied.id, resume_id=resume.id, hh_status="SENT")
 
     assert await vacancy_repo.rejected_by_model_ids(session, resume.id) == [rejected.id]
+
+
+async def test_живой_прогон_забирает_подготовленное_с_проверенным_письмом(
+    session: AsyncSession,
+) -> None:
+    from app.storage.models import Letter
+    from app.storage.repositories import vacancies as vacancy_repo
+
+    resume = make_resume()
+    ready, unchecked = (
+        make_vacancy(hh_id=str(n), url=f"https://hh.kz/vacancy/{n}") for n in (11, 12)
+    )
+    session.add_all([resume, ready, unchecked])
+    await session.commit()
+    letters = []
+    for vacancy, passed in ((ready, True), (unchecked, False)):
+        decision = await vacancy_repo.ensure_decision(
+            session, resume.id, vacancy.id, status=VacancyStatus.APPLY_PREPARED.value
+        )
+        letter = Letter(
+            resume_vacancy_id=decision.id,
+            version=1,
+            source="AI",
+            language="ru",
+            content="Здравствуйте!",
+            char_count=13,
+            is_selected=True,
+            fact_check_passed=passed,
+        )
+        session.add(letter)
+        letters.append(letter)
+    await session.commit()
+
+    # Письмо, не прошедшее проверку фактов, само не уходит
+    assert await vacancy_repo.prepared_for_apply(session, resume.id) == [(ready.id, letters[0].id)]

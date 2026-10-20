@@ -166,6 +166,16 @@ class BotRunner:
                 JobType.SEARCH,
                 [{"search_profile_id": profile.id} for profile in ctx.profiles],
             )
+            if effective_runtime == RuntimeMode.LIVE and mode == BotMode.AUTO:
+                # Подготовленное пробным прогоном отправляется первым: письма уже
+                # написаны и проверены, а поиск такие вакансии больше не покажет
+                prepared = await vacancy_repo.prepared_for_apply(session, resume_id)
+                await queue.add_many(
+                    session,
+                    run.id,
+                    JobType.APPLY,
+                    [{"vacancy_id": vid, "letter_id": lid} for vid, lid in prepared],
+                )
             if reanalyze_rejected:
                 # После смены правил отбора уже отклонённые вакансии стоит пересмотреть:
                 # описания в базе, браузер для анализа не нужен

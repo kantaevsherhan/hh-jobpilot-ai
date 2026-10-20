@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.browser.extract import VacancyData
 from app.browser.search import SearchItem
 from app.core.enums import VacancyStatus
-from app.storage.models import Application, ResumeVacancy, Vacancy
+from app.storage.models import Application, Letter, ResumeVacancy, Vacancy
 from app.storage.models.base import utcnow
 
 
@@ -160,3 +160,26 @@ async def rejected_by_model_ids(session: AsyncSession, resume_id: int) -> list[i
         .order_by(ResumeVacancy.vacancy_id)
     )
     return list(rows.all())
+
+
+async def prepared_for_apply(session: AsyncSession, resume_id: int) -> list[tuple[int, int]]:
+    """(vacancy_id, letter_id) — подготовлено пробным прогоном, письмо проверено.
+
+    Пробный прогон доходит до формы и останавливается. Без этого живой прогон
+    не увидел бы такие вакансии: поиск пропускает уже знакомые.
+    """
+    rows = await session.execute(
+        select(ResumeVacancy.vacancy_id, Letter.id)
+        .join(Letter, Letter.resume_vacancy_id == ResumeVacancy.id)
+        .where(
+            ResumeVacancy.resume_id == resume_id,
+            ResumeVacancy.status.in_(
+                [VacancyStatus.APPLY_PREPARED.value, VacancyStatus.LETTER_READY.value]
+            ),
+            Letter.is_selected.is_(True),
+            Letter.fact_check_passed.is_(True),
+            ResumeVacancy.vacancy_id.not_in(select(Application.vacancy_id)),
+        )
+        .order_by(ResumeVacancy.vacancy_id)
+    )
+    return [(vacancy_id, letter_id) for vacancy_id, letter_id in rows.all()]
