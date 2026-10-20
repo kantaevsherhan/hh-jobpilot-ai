@@ -149,3 +149,18 @@ async def test_дневной_лимит_останавливает_отправ
 
     assert guard.allowed is False
     assert guard.error_code == "LIMIT_REACHED"
+
+
+def test_длинное_письмо_успевает_напечататься() -> None:
+    from app.browser.apply import typing_timeout_ms
+
+    # 800 символов по 40 мс — это 32 секунды, стандартные 30 с Playwright не хватало
+    assert typing_timeout_ms(800, 40) > 800 * 40
+
+
+def test_письмо_в_поле_сверяется_с_исходным() -> None:
+    from app.browser.apply import letters_match
+
+    assert letters_match("Здравствуйте!\n\nТекст", "Здравствуйте!\r\n\r\nТекст ")
+    # Черновик HH, к которому допечатали письмо, — это несовпадение, отправлять нельзя
+    assert not letters_match("Здравствуйте!", "Старый черновикЗдравствуйте!")

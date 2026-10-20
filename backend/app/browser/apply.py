@@ -95,8 +95,38 @@ async def type_letter(page: "Page", letter: str, delay_per_char_ms: float) -> No
             step="TYPE_LETTER",
         )
 
+    # HH хранит черновик письма: без очистки текст допечатывался к старому
+    await field.fill("")
     await field.click()
-    await field.type(letter, delay=delay_per_char_ms)
+    await field.type(
+        letter,
+        delay=delay_per_char_ms,
+        timeout=typing_timeout_ms(len(letter), delay_per_char_ms),
+    )
+
+    typed = await field.input_value()
+    if not letters_match(letter, typed):
+        raise AppError(
+            "LETTER_MISMATCH",
+            "Текст в поле письма не совпал с письмом — отклик не отправлен",
+            step="TYPE_LETTER",
+            technical_details=typed[:2000],
+        )
+
+
+def typing_timeout_ms(chars: int, delay_per_char_ms: float) -> float:
+    """Посимвольный ввод письма на 800 символов идёт дольше стандартных 30 секунд
+    Playwright. Запас на собственную задержку браузера на каждый символ."""
+    return chars * (delay_per_char_ms + 50) + 15_000
+
+
+def letters_match(expected: str, actual: str) -> bool:
+    """Сравнение без учёта переводов строк Windows и пробелов по краям."""
+
+    def normalize(text: str) -> str:
+        return text.replace("\r\n", "\n").strip()
+
+    return normalize(expected) == normalize(actual)
 
 
 async def submit(page: "Page") -> bool:
