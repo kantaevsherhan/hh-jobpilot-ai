@@ -179,3 +179,11 @@ def test_кнопка_отклика_только_своей_вакансии() 
     # Кнопка с карточки «Вам могут подойти» ведёт на чужую вакансию
     assert "vacancy-serp__vacancy_response" not in HH.APPLY_BUTTON
     assert "vacancy-title-archived-text" in HH.VACANCY_ARCHIVED
+
+
+async def test_импорт_вакансии_по_чужой_ссылке_отклоняется(client) -> None:
+    response = await client.post(
+        "/api/v1/vacancies/import", json={"resume_id": 1, "url": "https://hh.kz/resume/abc"}
+    )
+
+    assert response.status_code == 409

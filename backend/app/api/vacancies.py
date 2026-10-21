@@ -8,9 +8,13 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Select, func, or_, select
 
 from app.api.deps import Session
-from app.core.enums import VacancyStatus
-from app.core.errors import NotFoundError
+from app.browser import vacancy as vacancy_page
+from app.browser.extract import parse_hh_id
+from app.browser.manager import browser
+from app.core.enums import RunStatus, VacancyStatus
+from app.core.errors import ConflictError, NotFoundError
 from app.filters.suspicious import check_suspicious
+from app.pipeline.runner import bot
 from app.storage.models import Application, Letter, Resume, ResumeVacancy, Vacancy
 from app.storage.models.base import utcnow
 from app.storage.repositories import crud
@@ -261,3 +265,31 @@ async def list_letters(vacancy_id: int, resume_id: int, session: Session) -> lis
             )
         ).all()
     )
+
+
+class ImportRequest(BaseModel):
+    resume_id: int
+    url: str
+
+
+@router.post("/import", summary="Добавить вакансию по ссылке hh.kz")
+async def import_vacancy(payload: ImportRequest, session: Session) -> dict[str, Any]:
+    """Вакансия, которую пользователь нашёл сам: в выдаче и рекомендациях её
+    могло не быть. Карточка читается тем же разбором, что и в прогоне."""
+    hh_id = parse_hh_id(payload.url)
+    if hh_id is None:
+        raise ConflictError("BAD_URL", "Это не ссылка на вакансию hh.kz")
+    await crud.get_or_404(session, Resume, payload.resume_id, "Резюме")
+    if not browser.is_running:
+        raise ConflictError(
+            "BROWSER_NOT_STARTED", "Браузер не запущен. Откройте «Настройки → Браузер»."
+        )
+    # Прогон водит тот же единственный браузер: параллельный переход сорвал бы его задачу
+    if bot.is_busy and bot.status == RunStatus.RUNNING:
+        raise ConflictError("BOT_BUSY", "Идёт прогон. Поставьте его на паузу и повторите")
+
+    data = await vacancy_page.open_and_extract(await browser.page(), hh_id)
+    vacancy, _ = await repo.save_from_card(session, data)
+    decision = await repo.ensure_decision(session, payload.resume_id, vacancy.id)
+    await session.commit()
+    return {"vacancy_id": vacancy.id, "title": vacancy.title, "status": decision.status}
