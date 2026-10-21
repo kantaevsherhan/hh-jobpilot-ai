@@ -6,7 +6,7 @@
 
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import JobState, JobType, RunStatus
@@ -39,13 +39,26 @@ async def add_many(
     return len(payloads)
 
 
+# Поздние стадии первыми: начатая вакансия доводится до отклика, прежде чем
+# открывать новые карточки. Иначе после поиска на сотню вакансий проверка
+# фактов и отклики ждали бы часами в конце очереди
+STAGE_ORDER = {
+    JobType.APPLY.value: 0,
+    JobType.FACT_CHECK.value: 1,
+    JobType.GENERATE_LETTER.value: 2,
+    JobType.ANALYZE.value: 3,
+    JobType.FETCH_VACANCY.value: 4,
+    JobType.SEARCH.value: 5,
+}
+
+
 async def take_next(session: AsyncSession, run_id: int) -> Job | None:
     """Взять следующую задачу. Один воркер, последовательно: параллелизм
     упрётся в VRAM (§2)."""
     job = await session.scalar(
         select(Job)
         .where(Job.run_id == run_id, Job.state == JobState.PENDING.value)
-        .order_by(Job.id)
+        .order_by(case(STAGE_ORDER, value=Job.type, else_=9), Job.id)
         .limit(1)
     )
     if job is None:

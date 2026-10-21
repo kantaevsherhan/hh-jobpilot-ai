@@ -191,3 +191,18 @@ async def test_завершённый_прогон_не_считается_пр�
 
     with pytest.raises(ConflictError):
         await BotRunner().resume()
+
+
+async def test_начатая_вакансия_доводится_до_отклика_раньше_новых(session: AsyncSession) -> None:
+    run = await make_run(session)
+    await queue.add_many(session, run.id, JobType.FETCH_VACANCY, [{"n": 1}, {"n": 2}])
+    await queue.add(session, run.id, JobType.FACT_CHECK, {"n": 3})
+    await queue.add(session, run.id, JobType.APPLY, {"n": 4})
+
+    taken = []
+    while (job := await queue.take_next(session, run.id)) is not None:
+        taken.append(job.payload_json["n"])
+        await queue.finish(session, job, JobState.DONE)
+
+    # Отклик и проверка фактов не ждут, пока откроются все новые карточки
+    assert taken == [4, 3, 1, 2]
