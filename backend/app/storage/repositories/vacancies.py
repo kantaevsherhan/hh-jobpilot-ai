@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.browser.extract import VacancyData
@@ -183,3 +183,34 @@ async def prepared_for_apply(session: AsyncSession, resume_id: int) -> list[tupl
         .order_by(ResumeVacancy.vacancy_id)
     )
     return [(vacancy_id, letter_id) for vacancy_id, letter_id in rows.all()]
+
+
+async def suitable_without_letter(
+    session: AsyncSession, resume_id: int, min_score: int
+) -> list[int]:
+    """Подходящие вакансии без письма: разобраны ручным прогоном или прогон
+    остановился до письма. Живой прогон в автомате дописывает и отправляет их.
+    """
+    has_letter = select(Letter.resume_vacancy_id)
+    rows = await session.scalars(
+        select(ResumeVacancy.vacancy_id)
+        .where(
+            ResumeVacancy.resume_id == resume_id,
+            or_(
+                ResumeVacancy.status.in_(
+                    [VacancyStatus.RECOMMENDED.value, VacancyStatus.LETTER_READY.value]
+                ),
+                # «На проверку» только по оценке. С причиной (правило компании
+                # «всегда на проверку», проваленная проверка фактов) — решает человек
+                and_(
+                    ResumeVacancy.status == VacancyStatus.REVIEW_REQUIRED.value,
+                    ResumeVacancy.skip_details.is_(None),
+                ),
+            ),
+            ResumeVacancy.score >= min_score,
+            ResumeVacancy.id.not_in(has_letter),
+            ResumeVacancy.vacancy_id.not_in(select(Application.vacancy_id)),
+        )
+        .order_by(ResumeVacancy.score.desc())
+    )
+    return list(rows.all())

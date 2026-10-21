@@ -341,3 +341,31 @@ async def test_живой_прогон_забирает_подготовленн
 
     # Письмо, не прошедшее проверку фактов, само не уходит
     assert await vacancy_repo.prepared_for_apply(session, resume.id) == [(ready.id, letters[0].id)]
+
+
+async def test_подходящие_без_письма_и_правило_всегда_на_проверку(session: AsyncSession) -> None:
+    from app.storage.repositories import vacancies as vacancy_repo
+
+    resume = make_resume()
+    good, forced, low = (
+        make_vacancy(hh_id=str(n), url=f"https://hh.kz/vacancy/{n}") for n in (21, 22, 23)
+    )
+    session.add_all([resume, good, forced, low])
+    await session.commit()
+    await vacancy_repo.ensure_decision(
+        session, resume.id, good.id, status=VacancyStatus.RECOMMENDED.value, score=80
+    )
+    # Правило «всегда на проверку» живой прогон не обходит
+    await vacancy_repo.ensure_decision(
+        session,
+        resume.id,
+        forced.id,
+        status=VacancyStatus.REVIEW_REQUIRED.value,
+        score=90,
+        skip_details="Правило по компании: всегда на проверку",
+    )
+    await vacancy_repo.ensure_decision(
+        session, resume.id, low.id, status=VacancyStatus.RECOMMENDED.value, score=40
+    )
+
+    assert await vacancy_repo.suitable_without_letter(session, resume.id, 60) == [good.id]

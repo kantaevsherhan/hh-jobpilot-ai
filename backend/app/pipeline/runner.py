@@ -176,6 +176,14 @@ class BotRunner:
                     JobType.APPLY,
                     [{"vacancy_id": vid, "letter_id": lid} for vid, lid in prepared],
                 )
+                # Подходящие без письма (ручной прогон, остановка до письма) —
+                # письмо, проверка фактов и отклик, как у свежих вакансий
+                backlog = await vacancy_repo.suitable_without_letter(
+                    session, resume_id, ctx.resume.auto_apply_score
+                )
+                await queue.add_many(
+                    session, run.id, JobType.GENERATE_LETTER, [{"vacancy_id": v} for v in backlog]
+                )
             if reanalyze_rejected:
                 # После смены правил отбора уже отклонённые вакансии стоит пересмотреть:
                 # описания в базе, браузер для анализа не нужен
