@@ -173,3 +173,9 @@ def test_идентификатор_резюме_из_ссылки_hh() -> None:
     assert resume_hash_from_url(url) == "4b50d52eff0967434a0039ed1f7a7a43446b35"
     assert resume_hash_from_url(None) is None
     assert resume_hash_from_url("https://hh.kz/vacancy/123") is None
+
+
+def test_кнопка_отклика_только_своей_вакансии() -> None:
+    # Кнопка с карточки «Вам могут подойти» ведёт на чужую вакансию
+    assert "vacancy-serp__vacancy_response" not in HH.APPLY_BUTTON
+    assert "vacancy-title-archived-text" in HH.VACANCY_ARCHIVED

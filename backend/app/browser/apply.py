@@ -45,6 +45,9 @@ async def inspect(page: "Page", hh_id: str) -> ApplyForm:
     if await page.locator(HH.ALREADY_APPLIED).count():
         return ApplyForm(can_apply=False, already_applied=True)
 
+    if await page.locator(HH.VACANCY_ARCHIVED).count():
+        return ApplyForm(can_apply=False, blocked_reason="Вакансия в архиве")
+
     if await page.locator(HH.EXTERNAL_APPLY).count():
         return ApplyForm(can_apply=False, is_external=True)
 

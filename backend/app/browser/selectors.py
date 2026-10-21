@@ -65,13 +65,17 @@ class HH:
     VACANCY_ADDRESS: Final = (
         '[data-qa="vacancy-view-location"], [data-qa="vacancy-view-raw-address"]'
     )
-    VACANCY_ARCHIVED: Final = '[data-qa="vacancy-archive-message"], .vacancy-archive'
+    VACANCY_ARCHIVED: Final = (
+        '[data-qa="vacancy-title-archived-text"], [data-qa="vacancy-archive-message"], '
+        ".vacancy-archive"
+    )
 
     # Отклик
+    # Только кнопки самой вакансии. vacancy-serp__vacancy_response — «Откликнуться»
+    # на карточках «Вам могут подойти» сбоку: бот нажимал её на архивной вакансии
+    # и пытался откликнуться на чужую
     APPLY_BUTTON: Final = (
-        '[data-qa="vacancy-response-link-top"], '
-        '[data-qa="vacancy-response-link-bottom"], '
-        'a[data-qa="vacancy-serp__vacancy_response"]'
+        '[data-qa="vacancy-response-link-top"], [data-qa="vacancy-response-link-bottom"]'
     )
     # После отклика HH показывает блок «Резюме доставлено» без своего data-qa,
     # поэтому он ищется по тексту — и для «уже откликались», и для подтверждения

@@ -122,6 +122,17 @@ async def apply_manually(
         )
         return {"status": VacancyStatus.EXTERNAL_APPLY.value, "message": "Отклик на внешнем сайте"}
 
+    if not state.can_apply:
+        vacancy.is_closed = True
+        await repo.ensure_decision(
+            session, resume.id, vacancy_id, status=VacancyStatus.VACANCY_CLOSED.value
+        )
+        await session.commit()
+        return {
+            "status": VacancyStatus.VACANCY_CLOSED.value,
+            "message": state.blocked_reason or "На странице нет кнопки отклика",
+        }
+
     # DRY_RUN останавливается до кнопки «Откликнуться»: на многих вакансиях HH
     # отправляет резюме прямо по ней, без формы, и «пробный» отклик ушёл бы (§20)
     if payload.runtime_mode != RuntimeMode.LIVE:

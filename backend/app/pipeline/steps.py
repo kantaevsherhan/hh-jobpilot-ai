@@ -517,6 +517,20 @@ async def apply(session: AsyncSession, run: Run, ctx: RunContext, payload: dict[
         )
         return
 
+    # Нет своей кнопки отклика (архив, снята с публикации) — форму не открываем:
+    # иначе под руку попадает кнопка чужой вакансии из блока рекомендаций
+    if not state.can_apply:
+        vacancy.is_closed = True
+        await vacancy_repo.ensure_decision(
+            session,
+            ctx.resume.id,
+            vacancy_id,
+            status=VacancyStatus.VACANCY_CLOSED.value,
+            skip_details=state.blocked_reason or "На странице нет кнопки отклика",
+        )
+        await session.commit()
+        return
+
     await ctx.delays.pause("before_open_form")
     result = await applying.send_application(
         page, vacancy.hh_id, letter_row.content if letter_row else None, delays=ctx.delays
