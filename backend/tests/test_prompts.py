@@ -172,3 +172,11 @@ class TestРегуляторПриукрашивания:
 
     def test_проверка_фактов_знает_про_уровень(self) -> None:
         assert "{{embellishment_rules}}" in prompts.default_text(PromptKey.FACT_CHECK)
+
+
+def test_письмо_называет_стек_вакансии_без_очевидного() -> None:
+    letter = prompts.default_text(PromptKey.LETTER)
+
+    assert "основные технологии из требований вакансии" in letter
+    # HTML и CSS в письме разработчику — шум
+    assert "HTML, CSS" in letter
