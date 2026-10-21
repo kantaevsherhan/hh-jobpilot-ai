@@ -391,6 +391,9 @@ class BotRunner:
             return
 
         if exc.error_code in {"HH_CAPTCHA", "HH_SESSION_EXPIRED"}:
+            # Задача остаётся в очереди: после капчи «Продолжить» начнёт с этой же вакансии
+            job.state = JobState.PENDING.value
+            await session.commit()
             self._stop.set()
             await self._finish(StopReason.NEEDS_USER_ACTION)
             return

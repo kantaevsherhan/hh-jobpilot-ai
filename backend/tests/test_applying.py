@@ -405,3 +405,22 @@ async def test_брошенная_работа_находится(session: Async
     assert await vacancy_repo.letters_awaiting_check(session, resume.id) == [
         (written.id, letter.id)
     ]
+
+
+async def test_капча_не_глушится_а_останавливает(monkeypatch) -> None:
+    import pytest
+
+    from app.browser import apply as apply_page
+    from app.core.errors import AppError
+    from app.pipeline.applying import send_application
+
+    async def captcha(_page):
+        raise AppError("HH_CAPTCHA", "HH показал капчу")
+
+    monkeypatch.setattr(apply_page, "open_form", captcha)
+
+    with pytest.raises(AppError) as exc:
+        await send_application(None, "1", "Здравствуйте!", delays=_NoDelays())
+
+    # Прогон останавливается целиком: капчу проходит человек, бот её не трогает
+    assert exc.value.error_code == "HH_CAPTCHA"

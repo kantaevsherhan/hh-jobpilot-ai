@@ -96,6 +96,15 @@ async def open_form(page: "Page") -> ApplyForm:
         # Окно HH без формы — предупреждение вроде «вакансия в другой стране,
         # скорее всего будет отказ». Соглашаться за пользователя бот не вправе
         dialog_text = (await page.locator(HH.DIALOG).first.inner_text()).strip()
+        # Капча — не причина пропустить вакансию, а сигнал остановиться: HH
+        # покажет её и на следующей. Проходит её человек, бот не трогает (§7)
+        if "капч" in dialog_text.lower() or await page.locator(HH.CAPTCHA).count():
+            raise AppError(
+                "HH_CAPTCHA",
+                "HH показал капчу. Пройдите её сами в окне браузера и нажмите «Продолжить»",
+                step="OPEN_APPLY_FORM",
+                technical_details=dialog_text[:500],
+            )
         abort = page.locator(HH.WARNING_ABORT).first
         if await abort.count() and await abort.is_visible():
             await abort.click()
