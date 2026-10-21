@@ -166,6 +166,27 @@ class BotRunner:
                 JobType.SEARCH,
                 [{"search_profile_id": profile.id} for profile in ctx.profiles],
             )
+            # Брошенное прошлыми прогонами (остановка, падение Docker): поиск
+            # знакомые вакансии больше не покажет, и без этого они бы потерялись
+            unopened = await vacancy_repo.unopened_ids(session, resume_id)
+            await queue.add_many(
+                session,
+                run.id,
+                JobType.FETCH_VACANCY,
+                [{"vacancy_id": v, "search_profile_id": ctx.profiles[0].id} for v in unopened],
+            )
+            unanalyzed = await vacancy_repo.unanalyzed_ids(session, resume_id)
+            await queue.add_many(
+                session, run.id, JobType.ANALYZE, [{"vacancy_id": v} for v in unanalyzed]
+            )
+            if mode == BotMode.AUTO:
+                awaiting = await vacancy_repo.letters_awaiting_check(session, resume_id)
+                await queue.add_many(
+                    session,
+                    run.id,
+                    JobType.FACT_CHECK,
+                    [{"vacancy_id": vid, "letter_id": lid} for vid, lid in awaiting],
+                )
             if effective_runtime == RuntimeMode.LIVE and mode == BotMode.AUTO:
                 # Подготовленное пробным прогоном отправляется первым: письма уже
                 # написаны и проверены, а поиск такие вакансии больше не покажет

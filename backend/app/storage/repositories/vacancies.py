@@ -214,3 +214,49 @@ async def suitable_without_letter(
         .order_by(ResumeVacancy.score.desc())
     )
     return list(rows.all())
+
+
+async def letters_awaiting_check(session: AsyncSession, resume_id: int) -> list[tuple[int, int]]:
+    """(vacancy_id, letter_id) — письмо написано, а проверка фактов не прошла
+    до остановки прогона. Без неё письмо так и не ушло бы."""
+    rows = await session.execute(
+        select(ResumeVacancy.vacancy_id, Letter.id)
+        .join(Letter, Letter.resume_vacancy_id == ResumeVacancy.id)
+        .where(
+            ResumeVacancy.resume_id == resume_id,
+            Letter.is_selected.is_(True),
+            Letter.fact_check_passed.is_(None),
+            ResumeVacancy.vacancy_id.not_in(select(Application.vacancy_id)),
+        )
+        .order_by(ResumeVacancy.vacancy_id)
+    )
+    return [(vacancy_id, letter_id) for vacancy_id, letter_id in rows.all()]
+
+
+async def unanalyzed_ids(session: AsyncSession, resume_id: int) -> list[int]:
+    """Карточка открыта и прошла фильтры, а анализ не случился: прогон остановился."""
+    rows = await session.scalars(
+        select(ResumeVacancy.vacancy_id)
+        .join(Vacancy, Vacancy.id == ResumeVacancy.vacancy_id)
+        .where(
+            ResumeVacancy.resume_id == resume_id,
+            ResumeVacancy.status.in_(
+                [VacancyStatus.DISCOVERED.value, VacancyStatus.ANALYZING.value]
+            ),
+            Vacancy.description != "",
+        )
+        .order_by(ResumeVacancy.vacancy_id)
+    )
+    return list(rows.all())
+
+
+async def unopened_ids(session: AsyncSession, resume_id: int) -> list[int]:
+    """Найдены поиском, но карточку так и не открыли: решения по ним ещё нет.
+
+    Поиск такие вакансии больше не покажет — он пропускает знакомые hh_id.
+    """
+    decided = select(ResumeVacancy.vacancy_id).where(ResumeVacancy.resume_id == resume_id)
+    rows = await session.scalars(
+        select(Vacancy.id).where(Vacancy.id.not_in(decided)).order_by(Vacancy.id)
+    )
+    return list(rows.all())

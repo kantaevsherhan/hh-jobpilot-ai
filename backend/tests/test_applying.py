@@ -369,3 +369,39 @@ async def test_подходящие_без_письма_и_правило_все
     )
 
     assert await vacancy_repo.suitable_without_letter(session, resume.id, 60) == [good.id]
+
+
+async def test_брошенная_работа_находится(session: AsyncSession) -> None:
+    from app.storage.models import Letter
+    from app.storage.repositories import vacancies as vacancy_repo
+
+    resume = make_resume()
+    unopened, fetched, written = (
+        make_vacancy(hh_id=str(n), url=f"https://hh.kz/vacancy/{n}") for n in (31, 32, 33)
+    )
+    session.add_all([resume, unopened, fetched, written])
+    await session.commit()
+    await vacancy_repo.ensure_decision(
+        session, resume.id, fetched.id, status=VacancyStatus.DISCOVERED.value
+    )
+    decision = await vacancy_repo.ensure_decision(
+        session, resume.id, written.id, status=VacancyStatus.LETTER_READY.value
+    )
+    letter = Letter(
+        resume_vacancy_id=decision.id,
+        version=1,
+        source="AI",
+        language="ru",
+        content="Здравствуйте!",
+        char_count=13,
+        is_selected=True,
+        fact_check_passed=None,
+    )
+    session.add(letter)
+    await session.commit()
+
+    assert await vacancy_repo.unopened_ids(session, resume.id) == [unopened.id]
+    assert await vacancy_repo.unanalyzed_ids(session, resume.id) == [fetched.id]
+    assert await vacancy_repo.letters_awaiting_check(session, resume.id) == [
+        (written.id, letter.id)
+    ]
