@@ -147,3 +147,17 @@ async def test_временный_сбой_повторяется(monkeypatch: p
 
     assert out == '{"result": "ok"}'
     assert len(attempts) == 2
+
+
+def test_лимит_сессии_claude_не_повторяется_и_понятен() -> None:
+    output = json.dumps(
+        {
+            "is_error": True,
+            "terminal_reason": "api_error",
+            "api_error": "usage_limit_reached",
+            "result": "You've hit your session limit · resets 10:40am (UTC)",
+        }
+    )
+
+    assert not cli.is_transient(output)
+    assert cli.cli_error_reason(output) == "You've hit your session limit · resets 10:40am (UTC)"

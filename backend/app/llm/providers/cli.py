@@ -299,15 +299,23 @@ _TRANSIENT = re.compile(
 
 
 def is_transient(output: str) -> bool:
-    # Лимит подписки повтором через минуту не лечится — его не повторяем
-    if "usage limit" in output.lower():
+    # Лимит подписки повтором через минуту не лечится — его не повторяем.
+    # Claude пишет api_error и в этом случае, поэтому лимит проверяется первым
+    lowered = output.lower()
+    if any(mark in lowered for mark in ("usage limit", "usage_limit", "session limit")):
         return False
     return bool(_TRANSIENT.search(output))
 
 
 def cli_error_reason(output: str) -> str | None:
-    """Последняя строка «ERROR: …» — в ней CLI пишет настоящую причину
-    (лимит подписки, нет входа), а выше идёт служебная шапка сессии."""
+    """Настоящая причина ошибки: у Codex — последняя строка «ERROR: …» после
+    служебной шапки, у Claude — поле result в JSON-конверте с is_error."""
+    try:
+        envelope: Any = json.loads(output)
+    except json.JSONDecodeError:
+        envelope = None
+    if isinstance(envelope, dict) and envelope.get("is_error") and envelope.get("result"):
+        return str(envelope["result"])
     errors = [
         line.split(":", 1)[1].strip()
         for line in output.splitlines()
