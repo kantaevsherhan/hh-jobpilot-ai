@@ -7,6 +7,7 @@
 import asyncio
 import json
 import os
+import re
 import shutil
 import tempfile
 from dataclasses import asdict, dataclass, field
@@ -14,7 +15,10 @@ from pathlib import Path
 from typing import Any
 
 from app.core.errors import AppError
+from app.core.logging import get_logger
 from app.llm.base import LLMProvider
+
+log = get_logger(__name__)
 
 CLAUDE = "claude"
 CODEX = "codex"
@@ -221,10 +225,27 @@ class CLIProvider(LLMProvider):
                     output_file=output_file,
                 )
             )
-            stdout, stderr = await self._run(command, argv, prompt, workdir)
+            stdout, _ = await self._run_with_retry(command, argv, prompt, workdir)
             if output_file.is_file():
                 return output_file.read_text(encoding="utf-8", errors="replace")
         return _unwrap(stdout)
+
+    async def _run_with_retry(
+        self, command: str, argv: list[str], prompt: str, workdir: str
+    ) -> tuple[str, str]:
+        """Временный сбой API (перегрузка, обрыв) не должен останавливать прогон:
+        одна такая ошибка стоила прогону на сотню вакансий."""
+        for attempt, pause in enumerate((*RETRY_PAUSES_SEC, None)):
+            try:
+                return await self._run(command, argv, prompt, workdir)
+            except AppError as exc:
+                if pause is None or not is_transient(exc.technical_details or ""):
+                    raise
+                log.warning(
+                    "CLI «%s»: временная ошибка, повтор %d через %d с", command, attempt + 1, pause
+                )
+                await asyncio.sleep(pause)
+        raise AssertionError("недостижимо")
 
     async def _run(
         self, command: str, argv: list[str], prompt: str, workdir: str
@@ -265,6 +286,23 @@ class CLIProvider(LLMProvider):
                 technical_details=(err or out)[-2000:],
             )
         return out, err
+
+
+RETRY_PAUSES_SEC = (30, 60)
+
+# Признаки сбоя на стороне API, который проходит сам: Claude пишет
+# terminal_reason=api_error, Codex и Claude — overloaded / 5xx / обрыв соединения
+_TRANSIENT = re.compile(
+    r'"terminal_reason":\s*"api_error"|overloaded|\b5\d\d\b|ECONNRESET|timed out|rate.?limit',
+    re.IGNORECASE,
+)
+
+
+def is_transient(output: str) -> bool:
+    # Лимит подписки повтором через минуту не лечится — его не повторяем
+    if "usage limit" in output.lower():
+        return False
+    return bool(_TRANSIENT.search(output))
 
 
 def cli_error_reason(output: str) -> str | None:

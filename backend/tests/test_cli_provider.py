@@ -115,3 +115,35 @@ async def test_каталог_отдаёт_оба_cli(client: AsyncClient) -> No
 
     assert response.status_code == 200
     assert [tool["command"] for tool in response.json()] == ["claude", "codex"]
+
+
+def test_временный_сбой_api_распознаётся() -> None:
+    assert cli.is_transient('{"terminal_reason":"api_error","is_error":true}')
+    assert cli.is_transient("Error: Overloaded")
+    # Лимит подписки повтором не лечится
+    assert not cli.is_transient("ERROR: You've hit your usage limit. Try again at 6:43 PM.")
+    assert not cli.is_transient("Not logged in")
+
+
+async def test_временный_сбой_повторяется(monkeypatch: pytest.MonkeyPatch) -> None:
+    provider = cli.CLIProvider(name="cli", extra={"command": "claude"})
+    attempts: list[int] = []
+
+    async def flaky(*_args: object) -> tuple[str, str]:
+        attempts.append(1)
+        if len(attempts) == 1:
+            raise AppError(
+                "PROVIDER_UNAVAILABLE", "сбой", technical_details='"terminal_reason":"api_error"'
+            )
+        return '{"result": "ok"}', ""
+
+    async def no_sleep(_seconds: float) -> None:
+        return None
+
+    monkeypatch.setattr(provider, "_run", flaky)
+    monkeypatch.setattr(cli.asyncio, "sleep", no_sleep)
+
+    out, _ = await provider._run_with_retry("claude", [], "промпт", ".")
+
+    assert out == '{"result": "ok"}'
+    assert len(attempts) == 2
