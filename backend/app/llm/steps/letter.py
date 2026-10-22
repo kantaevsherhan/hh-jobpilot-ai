@@ -32,6 +32,38 @@ def check_instructions_followed(letter: str, hidden_instructions: list[str]) -> 
     return [word for word in required_words(hidden_instructions) if word.lower() not in lowered]
 
 
+EXAMPLE_WORD = re.compile(r"[a-zа-яё][a-zа-яё0-9.+#]+", re.I)
+# Слова из названий примеров, которые ничего не говорят о стеке
+EXAMPLE_STOP_WORDS = {"отклик", "короткий", "ответом", "вопрос", "работодателя"}
+# В вакансиях стек часто назван иначе, чем в названии примера
+EXAMPLE_ALIASES = {"go": "go|golang", "node.js": "node.js|nodejs|node", "vue": "vue|vue.js|vuejs"}
+
+
+def pick_examples(
+    examples: list[tuple[str, str, bool]], title: str, description: str, limit: int = 3
+) -> list[str]:
+    """Выбрать примеры писем под вакансию. Пример — (название и категория, текст,
+    предпочтительный).
+
+    Раньше в промпт шли всегда первые три по порядку, и на Java-вакансию модель
+    видела примеры про Vue и Node. Совпадение в заголовке весит больше, чем в описании.
+    Предпочтительный пример только разбивает ничьи.
+    """
+    title_l, description_l = title.lower(), description.lower()
+
+    def score(label: str, preferred: bool) -> float:
+        total = 0.5 if preferred else 0.0
+        for word in {w.lower() for w in EXAMPLE_WORD.findall(label)} - EXAMPLE_STOP_WORDS:
+            variants = EXAMPLE_ALIASES.get(word, re.escape(word))
+            pattern = re.compile(rf"(?<![a-zа-яё])(?:{variants})(?![a-zа-яё])")
+            total += 3 * bool(pattern.search(title_l)) + bool(pattern.search(description_l))
+        return total
+
+    # sorted устойчив: при равной оценке сохраняется исходный порядок
+    ranked = sorted(examples, key=lambda example: -score(example[0], example[2]))
+    return [content for _, content, _ in ranked[:limit]]
+
+
 def pick_language(description_lang: str | None, allowed: list[str]) -> str:
     """Язык письма — по языку описания вакансии, из числа разрешённых (§17).
 
@@ -57,7 +89,7 @@ async def write_letter(
     green_flags: list[str],
     hidden_instructions: list[str],
     language: str,
-    examples: list[str],
+    examples: list[tuple[str, str, bool]],
     min_chars: int,
     max_chars: int,
     max_vacancy_chars: int = 6000,
@@ -79,7 +111,7 @@ async def write_letter(
             "language": language,
             "min_chars": min_chars,
             "max_chars": max_chars,
-            "letter_examples": "\n\n---\n\n".join(examples[:3]),
+            "letter_examples": "\n\n---\n\n".join(pick_examples(examples, title, description)),
             "embellishment_rules": embellishment.LETTER_RULES[
                 await embellishment.current_level(session)
             ],

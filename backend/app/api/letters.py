@@ -95,7 +95,7 @@ async def generate_letter(vacancy_id: int, payload: GenerateRequest, session: Se
                     LetterExample.is_active,
                     (LetterExample.resume_id.is_(None)) | (LetterExample.resume_id == resume.id),
                 )
-                # В промпт идут первые три: предпочтительные должны попасть туда точно
+                # Три лучших под вакансию выбирает pick_examples
                 .order_by(LetterExample.is_preferred.desc(), LetterExample.id)
             )
         ).all()
@@ -114,7 +114,10 @@ async def generate_letter(vacancy_id: int, payload: GenerateRequest, session: Se
         green_flags=list(analysis.get("green_flags", [])),
         hidden_instructions=hidden,
         language=pick_language(vacancy.description_lang, list(resume.letter_languages)),
-        examples=[example.content for example in examples],
+        examples=[
+            (f"{example.name} {example.category}", example.content, example.is_preferred)
+            for example in examples
+        ],
         min_chars=int(llm_settings.get("letter_min_chars", 400)),
         max_chars=int(llm_settings.get("letter_max_chars", 800)),
         max_vacancy_chars=int(llm_settings.get("max_vacancy_chars", 6000)),

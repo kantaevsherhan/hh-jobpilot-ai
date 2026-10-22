@@ -180,3 +180,34 @@ def test_письмо_называет_стек_вакансии_без_очев
     assert "основные технологии из требований вакансии" in letter
     # HTML и CSS в письме разработчику — шум
     assert "HTML, CSS" in letter
+
+
+EXAMPLES = [
+    ("Fullstack (Vue + Node.js) Fullstack", "vue", True),
+    ("Backend (Node.js) Backend", "node", False),
+    ("Frontend (Vue / Nuxt) Frontend", "front", False),
+    ("Java Backend (Spring Boot) Энтерпрайз", "java", False),
+    ("Backend (Go) Go", "go", False),
+]
+
+
+def test_на_java_вакансию_первым_идёт_пример_про_spring() -> None:
+    from app.llm.steps.letter import pick_examples
+
+    picked = pick_examples(EXAMPLES, "Java разработчик", "Spring Boot, PostgreSQL, Kafka")
+
+    assert picked[0] == "java"
+    assert len(picked) == 3
+
+
+def test_go_не_находится_внутри_других_слов() -> None:
+    from app.llm.steps.letter import pick_examples
+
+    assert pick_examples(EXAMPLES, "Аналитик", "Работа с Google Cloud")[0] == "vue"
+    assert pick_examples(EXAMPLES, "Golang developer", "Микросервисы")[0] == "go"
+
+
+def test_без_совпадений_порядок_прежний() -> None:
+    from app.llm.steps.letter import pick_examples
+
+    assert pick_examples(EXAMPLES, "Аналитик", "Excel") == ["vue", "node", "front"]
