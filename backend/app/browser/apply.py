@@ -59,6 +59,28 @@ async def inspect(page: "Page", hh_id: str) -> ApplyForm:
 
 async def open_form(page: "Page") -> ApplyForm:
     """Нажать «Откликнуться» и осмотреть форму."""
+    # Опрос HH может остаться от предыдущей вакансии и перекрыть кнопку.
+    # Капчу не закрываем, а при незакрытом окне не отправляем отклик вслепую.
+    if await page.locator(HH.CAPTCHA).count():
+        raise AppError(
+            "HH_CAPTCHA",
+            "HH показал капчу. Пройдите её сами в окне браузера и нажмите «Продолжить»",
+            step="OPEN_APPLY_FORM",
+        )
+    await dismiss_dialogs(page)
+    if await page.locator(HH.CAPTCHA).count():
+        raise AppError(
+            "HH_CAPTCHA",
+            "HH показал капчу. Пройдите её сами в окне браузера и нажмите «Продолжить»",
+            step="OPEN_APPLY_FORM",
+        )
+    if await page.locator(HH.DIALOG).count():
+        raise AppError(
+            "APPLY_FORM_UNKNOWN",
+            "Не удалось закрыть окно HH перед откликом. Закройте его вручную.",
+            step="OPEN_APPLY_FORM",
+        )
+
     button = page.locator(HH.APPLY_BUTTON).first
     if not await button.count():
         raise AppError(
