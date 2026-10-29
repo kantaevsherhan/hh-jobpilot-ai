@@ -17,8 +17,10 @@ from app.core.enums import (
     EventLevel,
     JobType,
     LetterSource,
+    RemoteMode,
     SkipReason,
     VacancyStatus,
+    WorkFormat,
 )
 from app.core.errors import AppError
 from app.core.logging import get_logger
@@ -486,6 +488,31 @@ async def apply(session: AsyncSession, run: Run, ctx: RunContext, payload: dict[
         )
         if guard.error_code == "LIMIT_REACHED":
             raise AppError("LIMIT_REACHED", guard.message or "Лимит откликов исчерпан")
+        return
+
+    # Подготовленные старым прогоном письма обходят повторное чтение карточки.
+    # Если все текущие профили требуют удалёнку, неподтверждённый формат
+    # нельзя отправлять, даже если раньше вакансия была одобрена.
+    if (
+        ctx.profiles
+        and all(profile.remote_mode == RemoteMode.REMOTE_ONLY for profile in ctx.profiles)
+        and vacancy.work_format != WorkFormat.REMOTE
+    ):
+        await vacancy_repo.ensure_decision(
+            session,
+            ctx.resume.id,
+            vacancy_id,
+            status=VacancyStatus.FILTERED_OUT.value,
+            skip_reason=SkipReason.WORK_FORMAT.value,
+            skip_details="Только удалённая работа: удалённый формат вакансии не подтверждён",
+        )
+        await events.log_event(
+            session,
+            run.id,
+            "apply_skipped",
+            f"{vacancy.title}: удалённый формат не подтверждён, отклик не отправлен",
+            resume_vacancy_id=decision_row.id,
+        )
         return
 
     page = await browser.page()
