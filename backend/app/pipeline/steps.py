@@ -25,6 +25,7 @@ from app.core.enums import (
 from app.core.errors import AppError
 from app.core.logging import get_logger
 from app.filters.engine import VacancyFacts, run_filters
+from app.filters.region import is_kazakhstan
 from app.filters.suspicious import check_suspicious
 from app.llm import embellishment
 from app.llm.steps.analyze import analyze_vacancy
@@ -176,6 +177,9 @@ async def fetch_vacancy(
     await ctx.delays.pause("page_load")
 
     saved, _ = await vacancy_repo.save_from_card(session, data)
+
+    if await _skip_foreign_vacancy(session, run, ctx, saved):
+        return
 
     verdict = run_filters(
         VacancyFacts(
@@ -490,6 +494,9 @@ async def apply(session: AsyncSession, run: Run, ctx: RunContext, payload: dict[
             raise AppError("LIMIT_REACHED", guard.message or "Лимит откликов исчерпан")
         return
 
+    if await _skip_foreign_vacancy(session, run, ctx, vacancy):
+        return
+
     # Подготовленные старым прогоном письма обходят повторное чтение карточки.
     # Если все текущие профили требуют удалёнку, неподтверждённый формат
     # нельзя отправлять, даже если раньше вакансия была одобрена.
@@ -600,6 +607,34 @@ async def apply(session: AsyncSession, run: Run, ctx: RunContext, payload: dict[
         resume_vacancy_id=decision_row.id,
     )
     await ctx.delays.pause("after_apply")
+
+
+async def _skip_foreign_vacancy(
+    session: AsyncSession, run: Run, ctx: RunContext, vacancy: Vacancy
+) -> bool:
+    kz_only = bool(ctx.profiles) and all(
+        {str(area) for area in profile.areas} == {"40"} for profile in ctx.profiles
+    )
+    if not kz_only or is_kazakhstan(vacancy.area, vacancy.raw_json):
+        return False
+    decision = await vacancy_repo.ensure_decision(
+        session,
+        ctx.resume.id,
+        vacancy.id,
+        status=VacancyStatus.FILTERED_OUT.value,
+        skip_reason=SkipReason.REGION.value,
+        skip_details="Только Казахстан: регион вакансии не подтверждён как Казахстан",
+    )
+    await events.log_event(
+        session,
+        run.id,
+        "region_skipped",
+        f"{vacancy.title}: регион не подтверждён как Казахстан, отклик не отправлен",
+        resume_vacancy_id=decision.id,
+    )
+    _bump(run, "filtered", 1)
+    await session.commit()
+    return True
 
 
 async def _write_with_instruction_retry(

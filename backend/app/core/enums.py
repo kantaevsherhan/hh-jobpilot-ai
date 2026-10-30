@@ -62,6 +62,7 @@ class SkipReason(StrEnum):
     SALARY_TOO_LOW = "SALARY_TOO_LOW"
     SALARY_UNKNOWN = "SALARY_UNKNOWN"
     WORK_FORMAT = "WORK_FORMAT"
+    REGION = "REGION"
     EXPERIENCE = "EXPERIENCE"
     TOO_OLD = "TOO_OLD"
     KEYWORD_STOP = "KEYWORD_STOP"
@@ -81,6 +82,7 @@ SKIP_REASON_LABELS: dict[str, str] = {
     SkipReason.SALARY_TOO_LOW: "Зарплата ниже минимума",
     SkipReason.SALARY_UNKNOWN: "Зарплата не указана",
     SkipReason.WORK_FORMAT: "Неподходящий формат работы",
+    SkipReason.REGION: "Регион не подходит",
     SkipReason.EXPERIENCE: "Не подходит по опыту",
     SkipReason.TOO_OLD: "Вакансия старше указанного срока",
     SkipReason.KEYWORD_STOP: "Стоп-слово в описании",
