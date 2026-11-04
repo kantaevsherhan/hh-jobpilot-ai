@@ -26,7 +26,13 @@ const { data: examples, isPending } = useLetterExamples(() => ui.resumeId)
 
 const dialog = ref(false)
 const editing = ref<LetterExample | null>(null)
-const form = reactive({ name: '', category: 'Общий', tone: 'Нейтральный', content: '' })
+const form = reactive({
+  name: '',
+  category: 'Общий',
+  tone: 'Нейтральный',
+  content: '',
+  is_preferred: false
+})
 
 const { errors, validate, reset } = useFormErrors(() => ({
   name: form.name.trim() ? undefined : 'Укажите название',
@@ -47,7 +53,13 @@ const remove = useMutate(['letter-examples'], deleteLetterExample)
 
 function openNew() {
   editing.value = null
-  Object.assign(form, { name: '', category: 'Общий', tone: 'Нейтральный', content: '' })
+  Object.assign(form, {
+    name: '',
+    category: 'Общий',
+    tone: 'Нейтральный',
+    content: '',
+    is_preferred: false
+  })
   reset()
   dialog.value = true
 }
@@ -58,7 +70,8 @@ function openEdit(example: LetterExample) {
     name: example.name,
     category: example.category,
     tone: example.tone,
-    content: example.content
+    content: example.content,
+    is_preferred: example.is_preferred
   })
   reset()
   dialog.value = true
@@ -80,12 +93,13 @@ function submit() {
 
 <template>
   <div class="mx-auto w-full max-w-6xl">
-    <div class="mb-4 flex items-start gap-4">
+    <div class="mb-4 flex flex-col items-start gap-4 md:flex-row">
       <p class="max-w-prose text-[13px] leading-relaxed text-slate-600">
-        Два-три примера подставляются в промпт письма как ориентир по тону, структуре и длине.
-        Формулировки из них модель не копирует — это прямо сказано в промпте.
+        Модель выбирает до трёх активных примеров по названию и описанию вакансии. Назовите свой
+        пример по профессии или отметьте его предпочтительным. Примеры задают тон и структуру, а
+        факты для письма берутся из вашего резюме.
       </p>
-      <Button class="ml-auto shrink-0" size="small" label="Добавить пример" @click="openNew">
+      <Button class="shrink-0 md:ml-auto" size="small" label="Добавить пример" @click="openNew">
         <template #icon><Plus class="mr-1.5 size-4" /></template>
       </Button>
     </div>
@@ -109,7 +123,7 @@ function submit() {
         :key="example.id"
         class="rounded-[14px] border border-slate-200 bg-white p-4"
       >
-        <div class="flex items-start gap-3">
+        <div class="flex flex-col items-start gap-3 md:flex-row">
           <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-baseline gap-2">
               <button
@@ -123,6 +137,9 @@ function submit() {
                 {{ example.category }}
               </span>
               <span class="text-[12px] text-slate-500">{{ example.tone }}</span>
+              <span v-if="example.is_preferred" class="text-[12px] font-medium text-teal-700">
+                Предпочтительный
+              </span>
               <span class="text-[12px] text-slate-400">{{ example.content.length }} симв.</span>
             </div>
             <p class="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-slate-600">
@@ -141,6 +158,7 @@ function submit() {
             </Button>
             <ToggleSwitch
               :model-value="example.is_active"
+              :aria-label="`Использовать пример «${example.name}»`"
               @update:model-value="
                 patch.mutate(
                   { id: example.id, payload: { is_active: !example.is_active } },
@@ -151,6 +169,7 @@ function submit() {
             <button
               type="button"
               class="flex size-8 items-center justify-center rounded-[9px] text-slate-500 hover:bg-red-50 hover:text-red-700"
+              :aria-label="`Удалить пример «${example.name}»`"
               @click="remove.mutate(example.id, { onError: fail })"
             >
               <Trash2 class="size-4" />
@@ -164,13 +183,18 @@ function submit() {
       v-model:visible="dialog"
       modal
       :header="editing ? 'Пример письма' : 'Новый пример'"
-      :style="{ width: '38rem', borderRadius: '18px' }"
+      class="w-[min(38rem,calc(100vw-2rem))] rounded-[18px]"
     >
       <div class="space-y-3">
-        <div class="grid grid-cols-3 gap-3">
-          <div class="col-span-1">
-            <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Название</label>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <div>
+            <label
+              for="letter-example-name"
+              class="mb-1.5 block text-[12.5px] font-medium text-slate-600"
+              >Название</label
+            >
             <InputText
+              id="letter-example-name"
               v-model="form.name"
               :invalid="!!errors.name"
               fluid
@@ -180,9 +204,14 @@ function submit() {
             <FieldError :message="errors.name" />
           </div>
           <div>
-            <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Категория</label>
+            <label
+              for="letter-example-category"
+              class="mb-1.5 block text-[12.5px] font-medium text-slate-600"
+              >Категория</label
+            >
             <Select
               v-model="form.category"
+              input-id="letter-example-category"
               :options="CATEGORIES"
               fluid
               class="w-full"
@@ -190,13 +219,29 @@ function submit() {
             />
           </div>
           <div>
-            <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Тон</label>
-            <Select v-model="form.tone" :options="TONES" fluid class="w-full" size="small" />
+            <label
+              for="letter-example-tone"
+              class="mb-1.5 block text-[12.5px] font-medium text-slate-600"
+              >Тон</label
+            >
+            <Select
+              v-model="form.tone"
+              input-id="letter-example-tone"
+              :options="TONES"
+              fluid
+              class="w-full"
+              size="small"
+            />
           </div>
         </div>
         <div>
-          <label class="mb-1.5 block text-[12.5px] font-medium text-slate-600">Текст письма</label>
+          <label
+            for="letter-example-content"
+            class="mb-1.5 block text-[12.5px] font-medium text-slate-600"
+            >Текст письма</label
+          >
           <Textarea
+            id="letter-example-content"
             v-model="form.content"
             :invalid="!!errors.content"
             class="w-full text-[13px] leading-relaxed"
@@ -204,10 +249,26 @@ function submit() {
           />
           <FieldError :message="errors.content" />
         </div>
+        <div class="flex items-center gap-3">
+          <ToggleSwitch v-model="form.is_preferred" input-id="letter-example-preferred" />
+          <div>
+            <label for="letter-example-preferred" class="block text-[13px] font-medium">
+              Предпочтительный
+            </label>
+            <p class="text-[12px] text-slate-600">
+              Учитывать пример даже без совпадений с вакансией.
+            </p>
+          </div>
+        </div>
       </div>
       <template #footer>
         <Button label="Отмена" severity="secondary" outlined size="small" @click="dialog = false" />
-        <Button label="Сохранить" size="small" @click="submit" />
+        <Button
+          label="Сохранить"
+          size="small"
+          :loading="create.isPending.value || patch.isPending.value"
+          @click="submit"
+        />
       </template>
     </Dialog>
   </div>

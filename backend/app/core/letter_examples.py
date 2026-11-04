@@ -15,7 +15,7 @@ DEFAULT_LETTER_EXAMPLES: list[dict[str, Any]] = [
         "category": "Fullstack",
         "tone": "Нейтральный",
         "is_active": True,
-        "is_preferred": True,
+        "is_preferred": False,
         "content": """Здравствуйте!
 
 Я fullstack-разработчик, пишу интерфейсы на Vue 3 и TypeScript, а бэкенд на Node.js. Увидел, что вам нужен человек, который закроет задачу от экрана до API, и это как раз то, чем я занимаюсь каждый день.

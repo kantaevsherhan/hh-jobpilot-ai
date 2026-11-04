@@ -174,12 +174,11 @@ class TestРегуляторПриукрашивания:
         assert "{{embellishment_rules}}" in prompts.default_text(PromptKey.FACT_CHECK)
 
 
-def test_письмо_называет_стек_вакансии_без_очевидного() -> None:
+def test_письмо_опирается_на_навыки_и_опыт_для_любой_профессии() -> None:
     letter = prompts.default_text(PromptKey.LETTER)
 
-    assert "основные технологии из требований вакансии" in letter
-    # HTML и CSS в письме разработчику — шум
-    assert "HTML, CSS" in letter
+    assert "работы, практики, учёбы или проекта" in letter
+    assert "подтверждённые навыки" in letter
 
 
 EXAMPLES = [
@@ -197,7 +196,7 @@ def test_на_java_вакансию_первым_идёт_пример_про_sp
     picked = pick_examples(EXAMPLES, "Java разработчик", "Spring Boot, PostgreSQL, Kafka")
 
     assert picked[0] == "java"
-    assert len(picked) == 3
+    assert picked == ["java", "vue"]
 
 
 def test_go_не_находится_внутри_других_слов() -> None:
@@ -207,7 +206,30 @@ def test_go_не_находится_внутри_других_слов() -> None
     assert pick_examples(EXAMPLES, "Golang developer", "Микросервисы")[0] == "go"
 
 
-def test_без_совпадений_порядок_прежний() -> None:
+def test_без_совпадений_берём_только_предпочтительные() -> None:
     from app.llm.steps.letter import pick_examples
 
-    assert pick_examples(EXAMPLES, "Аналитик", "Excel") == ["vue", "node", "front"]
+    assert pick_examples(EXAMPLES, "Аналитик", "Excel") == ["vue"]
+
+
+async def test_новые_примеры_добавляются_к_существующему_каталогу(session: AsyncSession) -> None:
+    from app.core.public_letter_examples import PUBLIC_LETTER_EXAMPLES
+    from app.storage.models import LetterExample
+    from app.storage.repositories import settings as settings_repo
+
+    session.add(LetterExample(name="Мой образец", content="Мой текст", is_preferred=True))
+    await settings_repo.put(session, prompts.LETTER_EXAMPLES_SEEDED, True)
+
+    assert await prompts.seed_letter_examples(session) == len(PUBLIC_LETTER_EXAMPLES)
+    assert await prompts.seed_letter_examples(session) == 0
+    assert (await session.get_one(LetterExample, 1)).content == "Мой текст"
+
+
+def test_бухгалтер_получает_свой_пример_раньше_общего() -> None:
+    from app.core.public_letter_examples import PUBLIC_LETTER_EXAMPLES
+    from app.llm.steps.letter import pick_examples
+
+    examples = [(row["name"], row["name"], row["is_preferred"]) for row in PUBLIC_LETTER_EXAMPLES]
+    picked = pick_examples(examples, "Бухгалтер", "Ведение первичной документации")
+
+    assert picked == ["Бухгалтер по первичным документам", "Универсальное сопроводительное"]

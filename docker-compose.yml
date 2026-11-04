@@ -23,9 +23,6 @@ services:
       # Тот же ключ шифрования, что при запуске из терминала: иначе сохранённые
       # API-ключи провайдеров не расшифруются
       - ${USERPROFILE:-${HOME}}/.config/hh-jobpilot:/keys
-      # Вход в Claude Code и Codex: CLI в контейнере работают по вашей подписке
-      - ${USERPROFILE:-${HOME}}/.claude/.credentials.json:/root/.claude/.credentials.json
-      - ${USERPROFILE:-${HOME}}/.codex/auth.json:/root/.codex/auth.json
     # Chromium падает на стандартных 64 МБ /dev/shm
     shm_size: 1gb
     ports:

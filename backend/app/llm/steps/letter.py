@@ -34,7 +34,20 @@ def check_instructions_followed(letter: str, hidden_instructions: list[str]) -> 
 
 EXAMPLE_WORD = re.compile(r"[a-zа-яё][a-zа-яё0-9.+#]+", re.I)
 # Слова из названий примеров, которые ничего не говорят о стеке
-EXAMPLE_STOP_WORDS = {"отклик", "короткий", "ответом", "вопрос", "работодателя"}
+EXAMPLE_STOP_WORDS = {
+    "отклик",
+    "короткий",
+    "ответом",
+    "вопрос",
+    "работодателя",
+    "общий",
+    "работа",
+    "по",
+    "на",
+    "для",
+    "сопроводительное",
+    "универсальное",
+}
 # В вакансиях стек часто назван иначе, чем в названии примера
 EXAMPLE_ALIASES = {"go": "go|golang", "node.js": "node.js|nodejs|node", "vue": "vue|vue.js|vuejs"}
 
@@ -45,9 +58,8 @@ def pick_examples(
     """Выбрать примеры писем под вакансию. Пример — (название и категория, текст,
     предпочтительный).
 
-    Раньше в промпт шли всегда первые три по порядку, и на Java-вакансию модель
-    видела примеры про Vue и Node. Совпадение в заголовке весит больше, чем в описании.
-    Предпочтительный пример только разбивает ничьи.
+    Совпадения в заголовке важнее совпадений в описании. Из примеров без
+    совпадений берём только предпочтительные.
     """
     title_l, description_l = title.lower(), description.lower()
 
@@ -59,9 +71,11 @@ def pick_examples(
             total += 3 * bool(pattern.search(title_l)) + bool(pattern.search(description_l))
         return total
 
-    # sorted устойчив: при равной оценке сохраняется исходный порядок
-    ranked = sorted(examples, key=lambda example: -score(example[0], example[2]))
-    return [content for _, content, _ in ranked[:limit]]
+    ranked = sorted(
+        ((score(label, preferred), content) for label, content, preferred in examples),
+        key=lambda example: -example[0],
+    )
+    return [content for relevance, content in ranked if relevance > 0][:limit]
 
 
 def pick_language(description_lang: str | None, allowed: list[str]) -> str:
